@@ -1,6 +1,7 @@
 use rand::prelude::*;
 use std::collections::VecDeque;
 use std::fmt::{Display, Formatter};
+use std::ops::Range;
 
 enum Event {
     Enter(u32),
@@ -99,6 +100,7 @@ impl Display for Results {
         )
     }
 }
+
 struct Simulation {
     t_max_time: u32,
 
@@ -114,15 +116,19 @@ struct Simulation {
     not_dispatched_clients: usize,
     dispatched_clients_count: usize,
     immediately_left_clients_count: usize,
+    // average_time_in: Vec<u32>,
     config: SimulationConfig,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct SimulationConfig {
     workers: u32,
     tables: u32,
     max_time: u32,
     client_ratio: f64,
+    production_time: Range<u32>,
+    dancing_time: Range<u32>,
+    consumption_time: Range<u32>,
 }
 
 impl Display for SimulationConfig {
@@ -134,12 +140,12 @@ impl Display for SimulationConfig {
 impl Simulation {
     pub fn with_config(config: SimulationConfig) -> Self {
         Self {
-            config,
             t_max_time: config.max_time,
 
             available_tables: config.tables,
             available_workers: config.workers,
 
+            config,
             events: VecDeque::with_capacity(150),
             average_worker_waiting_time: vec![],
             average_order_time: vec![],
@@ -206,8 +212,9 @@ impl Simulation {
 
                         self.available_workers -= 1;
 
-                        let free_worker_time =
-                            thread_rng().gen_range(1..2) + time;
+                        let free_worker_time = thread_rng()
+                            .gen_range(self.config.dancing_time.clone())
+                            + time;
                         // let free_worker_time = time;
                         new_events.push_back(Event::WorkerWalkingDance(
                             free_worker_time,
@@ -230,7 +237,8 @@ impl Simulation {
                         self.available_workers += 1;
                         assert!(self.available_workers <= self.config.workers);
 
-                        let producing_time = thread_rng().gen_range(1..2);
+                        let producing_time = thread_rng()
+                            .gen_range(self.config.production_time.clone());
                         self.average_order_time.push(producing_time);
 
                         let finish_food_time = producing_time + time;
@@ -247,8 +255,9 @@ impl Simulation {
                 Event::WaitingForFood(finish_food_time) => {
                     if time >= finish_food_time {
                         log::trace!("Client starts consuming");
-                        let end_consume_time =
-                            thread_rng().gen_range(1..5) + time;
+                        let end_consume_time = thread_rng()
+                            .gen_range(self.config.consumption_time.clone())
+                            + time;
                         new_events
                             .push_back(Event::ConsumeFood(end_consume_time));
                     } else {
@@ -313,17 +322,20 @@ fn main() {
     let iter_count = std::env::var("ITER_COUNT")
         .ok()
         .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or(20_000);
+        .unwrap_or(100);
 
     let config = SimulationConfig {
         workers: 1,
-        tables: 7,
+        tables: 10,
         max_time: 1000,
-        client_ratio: 0.65,
+        client_ratio: 0.95,
+        production_time: 1..2,
+        dancing_time: 1..2,
+        consumption_time: 1..2,
     };
 
     for _ in 0..iter_count {
-        let sim = Simulation::with_config(config);
+        let sim = Simulation::with_config(config.clone());
         results.add_mut(sim.run());
     }
 
