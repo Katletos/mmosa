@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, serde::Serialize)]
 pub struct Results {
     pub average_worker_waiting_time: f32,
     pub average_order_time: f32,

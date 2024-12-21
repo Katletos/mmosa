@@ -2,3 +2,4 @@
 target
 stats
 **/*.png
+results.toml

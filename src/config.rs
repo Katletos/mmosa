@@ -3,6 +3,8 @@ use std::{
     ops::Range,
 };
 
+use crate::statistic::StatsConfig;
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SimulationConfig {
     pub workers: u32,
@@ -24,6 +26,7 @@ impl Display for SimulationConfig {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct EstimationConfig {
     pub simulation: SimulationConfig,
+    pub stats: StatsConfig,
     /// total count of runs
     pub total: usize,
     pub continues: bool,

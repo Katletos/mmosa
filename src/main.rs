@@ -3,12 +3,14 @@ mod config;
 mod event;
 mod results;
 mod simulation;
+mod statistic;
 
 use chart::Histogram;
 pub use config::{EstimationConfig, SimulationConfig};
 pub use event::Event;
 pub use results::Results;
 pub use simulation::Simulation;
+pub use statistic::Stats;
 
 fn main() {
     env_logger::builder()
@@ -41,21 +43,21 @@ fn main() {
             .map(|r| r.average_worker_waiting_time)
             .collect(),
     )
-    .save("stats/WaitingTime.png")
+    .save("stats/WaitingTime", &config.stats)
     .unwrap();
 
     Histogram::from_y_data(
         "Average busy tables",
         results.iter().map(|r| r.average_busy_tables).collect(),
     )
-    .save("stats/BusyTables.png")
+    .save("stats/BusyTables", &config.stats)
     .unwrap();
 
     Histogram::from_y_data(
         "Average free workers",
         results.iter().map(|r| r.average_free_workers).collect(),
     )
-    .save("stats/FreeWorkers.png")
+    .save("stats/FreeWorkers", &config.stats)
     .unwrap();
 
     Histogram::from_y_data(
@@ -65,28 +67,25 @@ fn main() {
             .map(|r| r.immediately_left_clients_count)
             .collect(),
     )
-    .save("stats/ImmediateClients.png")
+    .save("stats/ImmediateClients", &config.stats)
     .unwrap();
 
     Histogram::from_y_data(
         "Average order time",
-        results
-            .iter()
-            .map(|r| r.average_order_time)
-            .collect(),
+        results.iter().map(|r| r.average_order_time).collect(),
     )
-    .save("stats/OrderTime.png")
+    .save("stats/OrderTime", &config.stats)
     .unwrap();
 
     Histogram::from_y_data(
         "Average consumption time",
-        results
-            .iter()
-            .map(|r| r.average_consumption_time)
-            .collect(),
+        results.iter().map(|r| r.average_consumption_time).collect(),
     )
-    .save("stats/ConsumptionTime.png")
+    .save("stats/ConsumptionTime", &config.stats)
     .unwrap();
 
     total_results.norm_mut(config.total);
+
+    std::fs::write("results.toml", toml::to_string(&total_results).unwrap())
+        .unwrap();
 }
