@@ -1,20 +1,24 @@
+use nalgebra::{DMatrix, DVector};
 use plotters::prelude::*;
 
 pub struct Linear<'a> {
     pub title: &'a str,
     pub x_data: Vec<f64>,
     pub y_data: Vec<f64>,
+
+    pub y_data_appx: Vec<f64>,
 }
 
 impl<'a> Linear<'a> {
     pub fn from_data(title: &'a str, x: Vec<f32>, y: Vec<f32>) -> Self {
         assert!(x.len() == y.len());
 
-        let y_data = y.into_iter().map(|v| v as f64).collect();
-        let x_data = x.into_iter().map(|v| v as f64).collect();
+        let y_data = y.into_iter().map(|v| v as f64).collect::<Vec<f64>>();
+        let x_data = x.into_iter().map(|v| v as f64).collect::<Vec<f64>>();
 
         Self {
             title,
+            y_data_appx: find_approximation(&x_data, &y_data),
             x_data,
             y_data,
         }
@@ -59,6 +63,20 @@ impl<'a> Linear<'a> {
             .label("Data");
 
         chart
+            .draw_series(
+                LineSeries::new(
+                    self.x_data
+                        .iter()
+                        .zip(self.y_data_appx.iter())
+                        .map(|(x, y)| (*x, *y)),
+                    RED,
+                )
+                .point_size(5),
+            )
+            .unwrap()
+            .label("Approximated solution");
+
+        chart
             .configure_series_labels()
             .background_style(WHITE.mix(0.8))
             .border_style(BLACK)
@@ -67,4 +85,19 @@ impl<'a> Linear<'a> {
 
         Ok(())
     }
+}
+fn find_approximation(x: &[f64], y: &[f64]) -> Vec<f64> {
+    let x_matrix = DMatrix::from_columns(&[
+        DVector::from_element(x.len(), 1.0),
+        DVector::from_row_slice(x),
+    ]);
+    let y = DVector::from_row_slice(y);
+
+    let eps = 1e-14;
+    let results =
+        lstsq::lstsq(&x_matrix, &y, eps).expect("Failed to solve lst sqt");
+
+    let y_pred = x_matrix * &results.solution;
+
+    y_pred.as_slice().to_vec()
 }
