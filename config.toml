@@ -1,11 +1,11 @@
-total = 10_000
+total = 1_000
 continues = false
 
 [simulation]
 workers = 1
 tables = 10
-max_time = 1_000
-client_ratio = 0.95
-production_time = { start = 1, end = 2 }
-dancing_time = { start = 1, end = 2 }
-consumption_time = { start = 1, end = 2 }
+max_time = 10_000
+client_ratio = 0.65
+production_time = { start = 1, end = 3 }
+dancing_time = { start = 2, end = 4 }
+consumption_time = { start = 1, end = 3 }

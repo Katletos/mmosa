@@ -1,2 +1,4 @@
 *.lock
 target
+stats
+**/*.png

@@ -1,11 +1,12 @@
 use std::fmt::{Display, Formatter};
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Results {
     pub average_worker_waiting_time: f32,
     pub average_order_time: f32,
     pub average_busy_tables: f32,
     pub average_free_workers: f32,
+    pub average_consumption_time: f32,
     pub dispatched_clients: f32,
     pub not_dispatched_clients: f32,
     pub immediately_left_clients_count: f32,
@@ -18,6 +19,7 @@ impl Results {
 
     pub fn add_mut(&mut self, other: Self) {
         self.average_worker_waiting_time += other.average_worker_waiting_time;
+        self.average_consumption_time += other.average_consumption_time;
         self.average_order_time += other.average_order_time;
         self.average_busy_tables += other.average_busy_tables;
         self.average_free_workers += other.average_free_workers;
@@ -29,6 +31,7 @@ impl Results {
 
     pub fn norm_mut(&mut self, count: usize) {
         self.average_worker_waiting_time /= count as f32;
+        self.average_consumption_time /= count as f32;
         self.average_order_time /= count as f32;
         self.average_busy_tables /= count as f32;
         self.average_free_workers /= count as f32;
