@@ -3,7 +3,7 @@ use std::{
     ops::Range,
 };
 
-use crate::statistic::StatsConfig;
+use crate::{scenario::ScenarioConfig, statistic::StatsConfig};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SimulationConfig {
@@ -27,6 +27,7 @@ impl Display for SimulationConfig {
 pub struct EstimationConfig {
     pub simulation: SimulationConfig,
     pub stats: StatsConfig,
+    pub scenario: Option<ScenarioConfig>,
     /// total count of runs
     pub total: usize,
     pub continues: bool,

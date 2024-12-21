@@ -1,5 +1,7 @@
+use std::ops::Range;
+
 use statrs::{
-    distribution::{ChiSquared, ContinuousCDF, Normal},
+    distribution::{ChiSquared, ContinuousCDF, Normal, StudentsT},
     statistics::Statistics,
 };
 
@@ -7,6 +9,9 @@ use statrs::{
 pub struct Stats {
     pub mean: f64,
     pub std_dev: f64,
+
+    pub value_range: Range<f64>,
+
     pub chi_test: Option<ChiTest>,
     pub ks_test: Option<KsTest>,
     pub bins: usize,
@@ -69,9 +74,19 @@ impl Stats {
             None
         };
 
+        let value_range = {
+            let t_dist = StudentsT::new(0.0, 1.0, bins as f64).unwrap();
+            let t_critical = t_dist.inverse_cdf(1.0 - config.alpha / 2.0);
+
+            let t_margin = t_critical * std_dev / data.len() as f64;
+
+            (mean - t_margin)..(mean + t_margin)
+        };
+
         Self {
             mean,
             std_dev,
+            value_range,
             bins,
             chi_test,
             ks_test,

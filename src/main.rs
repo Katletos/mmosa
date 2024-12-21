@@ -2,6 +2,7 @@ mod chart;
 mod config;
 mod event;
 mod results;
+mod scenario;
 mod simulation;
 mod statistic;
 
@@ -36,6 +37,11 @@ fn main() {
         results.push(run_result);
     }
 
+    total_results.norm_mut(config.total);
+
+    std::fs::write("results.toml", toml::to_string(&total_results).unwrap())
+        .unwrap();
+
     Histogram::from_y_data(
         "Average Waiting time",
         results
@@ -43,21 +49,21 @@ fn main() {
             .map(|r| r.average_worker_waiting_time)
             .collect(),
     )
-    .save("stats/WaitingTime", &config.stats)
+    .save("stats/single_run/WaitingTime", &config.stats)
     .unwrap();
 
     Histogram::from_y_data(
         "Average busy tables",
         results.iter().map(|r| r.average_busy_tables).collect(),
     )
-    .save("stats/BusyTables", &config.stats)
+    .save("stats/single_run/BusyTables", &config.stats)
     .unwrap();
 
     Histogram::from_y_data(
         "Average free workers",
         results.iter().map(|r| r.average_free_workers).collect(),
     )
-    .save("stats/FreeWorkers", &config.stats)
+    .save("stats/single_run/FreeWorkers", &config.stats)
     .unwrap();
 
     Histogram::from_y_data(
@@ -67,25 +73,24 @@ fn main() {
             .map(|r| r.immediately_left_clients_count)
             .collect(),
     )
-    .save("stats/ImmediateClients", &config.stats)
+    .save("stats/single_run/ImmediateClients", &config.stats)
     .unwrap();
 
     Histogram::from_y_data(
         "Average order time",
         results.iter().map(|r| r.average_order_time).collect(),
     )
-    .save("stats/OrderTime", &config.stats)
+    .save("stats/single_run/OrderTime", &config.stats)
     .unwrap();
 
     Histogram::from_y_data(
         "Average consumption time",
         results.iter().map(|r| r.average_consumption_time).collect(),
     )
-    .save("stats/ConsumptionTime", &config.stats)
+    .save("stats/single_run/ConsumptionTime", &config.stats)
     .unwrap();
 
-    total_results.norm_mut(config.total);
-
-    std::fs::write("results.toml", toml::to_string(&total_results).unwrap())
-        .unwrap();
+    if config.scenario.is_some() {
+        scenario::run(config);
+    }
 }
