@@ -8,6 +8,7 @@ pub struct Stats {
     pub mean: f64,
     pub std_dev: f64,
     pub chi_test: Option<ChiTest>,
+    pub ks_test: Option<KsTest>,
     pub bins: usize,
 }
 
@@ -19,6 +20,12 @@ pub struct StatsConfig {
 #[derive(Debug, Clone, serde::Serialize)]
 pub enum ChiTest {
     //effective and estimated
+    Passed(f64, f64),
+    Failed(f64, f64),
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub enum KsTest {
     Passed(f64, f64),
     Failed(f64, f64),
 }
@@ -47,25 +54,41 @@ impl Stats {
             None
         };
 
+        let ks_test = if data.len() > 40 {
+            let ks_critical = (-0.5 * (config.alpha / 2.0).ln()).sqrt();
+            let ks = ks_test(data, bins, normal_distribution);
+
+            if ks < ks_critical {
+                KsTest::Passed(ks, ks_critical)
+            } else {
+                KsTest::Failed(ks, ks_critical)
+            }
+            .into()
+        } else {
+            log::warn!("Too small data size for KS test ({})", data.len());
+            None
+        };
+
         Self {
             mean,
             std_dev,
-            chi_test,
             bins,
+            chi_test,
+            ks_test,
         }
     }
 }
 
 pub fn chi_test<N: ContinuousCDF<f64, f64>>(
-    samples: &[f64],
+    data: &[f64],
     bins: usize,
     d: N,
 ) -> f64 {
-    let min_y = *samples.iter().min_by(|a, b| a.total_cmp(b)).unwrap();
-    let max_y = *samples.iter().max_by(|a, b| a.total_cmp(b)).unwrap();
+    let min_y = *data.iter().min_by(|a, b| a.total_cmp(b)).unwrap();
+    let max_y = *data.iter().max_by(|a, b| a.total_cmp(b)).unwrap();
 
     let batch_value_step = (max_y - min_y) / bins as f64; //that's tricky
-    let total_count = samples.len() as f64;
+    let total_count = data.len() as f64;
 
     let mut chi_values = Vec::<f64>::new();
 
@@ -73,7 +96,7 @@ pub fn chi_test<N: ContinuousCDF<f64, f64>>(
         let min_value = min_y + batch_value_step * i as f64;
         let max_value = min_value + batch_value_step;
 
-        let interval_size = samples
+        let interval_size = data
             .iter()
             .filter(|v| (min_value..max_value).contains(*v))
             .count();
@@ -91,4 +114,42 @@ pub fn chi_test<N: ContinuousCDF<f64, f64>>(
     }
 
     chi_values.into_iter().sum()
+}
+
+pub fn ks_test<N: ContinuousCDF<f64, f64>>(
+    data: &[f64],
+    bins: usize,
+    d: N,
+) -> f64 {
+    let min_y = *data.iter().min_by(|a, b| a.total_cmp(b)).unwrap();
+    let max_y = *data.iter().max_by(|a, b| a.total_cmp(b)).unwrap();
+
+    let batch_value_step = (max_y - min_y) / bins as f64; //that's tricky
+    let total_count = data.len() as f64;
+
+    let v = (0..bins)
+        .map(|i| {
+            let min_value = min_y + batch_value_step * i as f64;
+            let max_value = min_value + batch_value_step;
+
+            let interval_size = data
+                .iter()
+                .filter(|v| (min_value..max_value).contains(*v))
+                .count();
+
+            if interval_size <= 4 {
+                log::warn!(
+                    "Small real batch size for chi test: {interval_size}"
+                );
+            }
+
+            let effective_prob = interval_size as f64 / total_count;
+            let estimated_prob = d.cdf(max_value) - d.cdf(min_value);
+
+            (effective_prob - estimated_prob).abs()
+        })
+        .max_by(|a, b| a.total_cmp(b))
+        .unwrap();
+
+    v * total_count.sqrt()
 }
