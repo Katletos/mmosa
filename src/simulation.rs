@@ -43,6 +43,8 @@ impl Simulation {
         }
     }
 
+    // pub fn set_callback(&mut self, )
+
     pub fn run(mut self) -> Results {
         for time in 0..self.t_max_time {
             log::trace!("-----Tick #{time}-----");
