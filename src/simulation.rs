@@ -22,6 +22,7 @@ pub struct Simulation {
     immediately_left_clients_count: usize,
     // average_time_in: Vec<u32>,
     config: SimulationConfig,
+    world_time: Option<SimulationTick>,
 }
 
 pub type SimulationTick = u32;
@@ -44,24 +45,42 @@ impl Simulation {
             not_dispatched_clients: 0,
             dispatched_clients_count: 0,
             immediately_left_clients_count: 0,
+            world_time: None,
         }
     }
 
-    pub fn run(mut self) -> (Results, Log) {
+    pub fn run(&mut self) -> (Results, Log) {
         let mut log = Log::empty();
 
-        for time in 0..self.t_max_time {
-            log::trace!("-----Tick #{time}-----");
-            self.generate_new_events(time);
-            self.process_tick(time);
+        let start_time = self.world_time.unwrap_or(0);
+        let end_time = start_time + self.t_max_time;
+
+        self.world_time = Some(end_time);
+
+        for tick in start_time..end_time {
+            log::trace!("-----Tick #{tick}-----");
+            self.generate_new_events(tick);
+            self.process_tick(tick);
 
             if self.config.use_logs {
                 let part_results = self.partial_result();
-                log.append(time, part_results);
+                log.append(tick - start_time, part_results);
             }
         }
 
-        (result_of(&self), log)
+        (result_of(self), log)
+    }
+
+    pub fn reset_metrics(&mut self) {
+        self.average_worker_waiting_time.clear();
+        self.average_order_time.clear();
+        self.average_consumption_time.clear();
+        self.average_busy_tables.clear();
+        self.average_free_workers.clear();
+
+        self.not_dispatched_clients = 0;
+        self.dispatched_clients_count = 0;
+        self.immediately_left_clients_count = 0;
     }
 
     fn process_tick(&mut self, time: u32) {

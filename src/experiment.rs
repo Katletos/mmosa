@@ -42,15 +42,28 @@ pub fn run(config: EstimationConfig) {
     let mut total_logs = Log::empty();
     let mut results = Vec::<Results>::new();
 
+    let mut global_sim = if config.experiment.continous {
+        Some(Simulation::with_config(config.simulation.clone()))
+    } else {
+        None
+    };
+
     for _ in 0..config.experiment.total {
-        let sim = Simulation::with_config(config.simulation.clone());
-        let (run_result, run_log) = sim.run();
+        let (run_result, run_log) = if let Some(ref mut sim) = global_sim {
+            sim.reset_metrics();
+            sim.run()
+        } else {
+            let mut sim = Simulation::with_config(config.simulation.clone());
+            sim.run()
+        };
 
         total_results.add_mut(run_result.clone());
         total_logs.add_mut(run_log);
 
         results.push(run_result);
     }
+
+    drop(global_sim);
 
     total_results.norm_mut(config.experiment.total);
     total_logs.norm_mut(config.experiment.total);
