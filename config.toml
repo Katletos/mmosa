@@ -14,7 +14,7 @@ alpha = 0.05
 
 [experiment]
 total = 1_000
-continous = true
+continous = false
 parameter = "waiting_time"
 
 [scenario]

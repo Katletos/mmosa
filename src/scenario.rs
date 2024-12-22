@@ -1,5 +1,7 @@
 use std::ops::Range;
 
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
+
 use crate::{
     chart::Linear, EstimationConfig, Results, Simulation, SimulationConfig,
 };
@@ -29,16 +31,19 @@ pub fn run(config: EstimationConfig) {
 
         let mut total_results = Results::zeros();
         let mut results = Vec::<Results>::new();
-        for _ in 0..config.experiment.total {
-            let (run_result, _log) = {
+        let tmp = (0..config.experiment.total)
+            .into_par_iter()
+            .map(|_| {
                 let mut sim =
                     Simulation::with_config(simulation_config.clone());
                 sim.run()
-            };
+            })
+            .collect::<Vec<_>>();
 
+        tmp.into_iter().for_each(|(run_result, _log)| {
             total_results.add_mut(run_result.clone());
             results.push(run_result);
-        }
+        });
 
         total_results.norm_mut(config.experiment.total);
 
