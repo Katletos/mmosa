@@ -2,7 +2,8 @@ total = 1_000
 continues = false
 
 [simulation]
-max_time = 10_000
+use_logs = true
+max_time = 1_000
 
 workers = 2
 tables = 10

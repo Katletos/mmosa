@@ -31,7 +31,7 @@ pub fn run(config: EstimationConfig) {
         let mut results = Vec::<Results>::new();
         for _ in 0..config.total {
             let sim = Simulation::with_config(simulation_config.clone());
-            let run_result = sim.run();
+            let (run_result, _run_log) = sim.run();
 
             total_results.add_mut(run_result.clone());
             results.push(run_result);
@@ -98,7 +98,8 @@ fn config_builder(
 ) -> impl Fn(u32) -> SimulationConfig {
     let scenario = config.scenario.clone().unwrap();
     let kind = scenario.parameter.clone();
-    let base_config = config.simulation.clone();
+    let mut base_config = config.simulation.clone();
+    base_config.use_logs = false;
 
     move |v| {
         let mut config = base_config.clone();

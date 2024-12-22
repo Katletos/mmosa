@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use rand::prelude::*;
 
-use crate::{Event, Results, SimulationConfig};
+use crate::{Event, Log, Results, SimulationConfig};
 
 pub struct Simulation {
     t_max_time: u32,
@@ -23,6 +23,8 @@ pub struct Simulation {
     // average_time_in: Vec<u32>,
     config: SimulationConfig,
 }
+
+pub type SimulationTick = u32;
 
 impl Simulation {
     pub fn with_config(config: SimulationConfig) -> Self {
@@ -45,16 +47,21 @@ impl Simulation {
         }
     }
 
-    // pub fn set_callback(&mut self, )
+    pub fn run(mut self) -> (Results, Log) {
+        let mut log = Log::empty();
 
-    pub fn run(mut self) -> Results {
         for time in 0..self.t_max_time {
             log::trace!("-----Tick #{time}-----");
             self.generate_new_events(time);
             self.process_tick(time);
+
+            if self.config.use_logs {
+                let part_results = self.partial_result();
+                log.append(time, part_results);
+            }
         }
 
-        result_of(self)
+        (result_of(&self), log)
     }
 
     fn process_tick(&mut self, time: u32) {
@@ -191,13 +198,18 @@ impl Simulation {
             }
         }
 
-        self.average_busy_tables
-            .push(self.config.tables - self.available_tables);
+        let busy_tables = self.config.tables - self.available_tables;
+
+        self.average_busy_tables.push(busy_tables);
         self.average_free_workers.push(self.available_workers);
 
         new_events
             .into_iter()
             .for_each(|e| self.events.push_back(e));
+    }
+
+    fn partial_result(&self) -> Results {
+        result_of(self)
     }
 
     fn generate_new_events(&mut self, tick: u32) {
@@ -209,7 +221,7 @@ impl Simulation {
     }
 }
 
-fn result_of(sim: Simulation) -> Results {
+fn result_of(sim: &Simulation) -> Results {
     let average_worker_waiting_time =
         sim.average_worker_waiting_time.iter().sum::<u32>() as f32
             / sim.average_worker_waiting_time.len() as f32;

@@ -7,6 +7,7 @@ pub struct Linear<'a> {
     pub y_data: Vec<f64>,
 
     pub y_data_appx: Vec<f64>,
+    pub use_approximation: bool,
 }
 
 impl<'a> Linear<'a> {
@@ -21,7 +22,14 @@ impl<'a> Linear<'a> {
             y_data_appx: find_approximation(&x_data, &y_data),
             x_data,
             y_data,
+            use_approximation: true,
         }
+    }
+
+    pub fn use_approximation(&mut self, use_it: bool) -> &mut Self {
+        self.use_approximation = use_it;
+
+        self
     }
 
     pub fn save(&'a self, file_name: &str) -> std::io::Result<()> {
@@ -62,19 +70,21 @@ impl<'a> Linear<'a> {
             .unwrap()
             .label("Data");
 
-        chart
-            .draw_series(
-                LineSeries::new(
-                    self.x_data
-                        .iter()
-                        .zip(self.y_data_appx.iter())
-                        .map(|(x, y)| (*x, *y)),
-                    RED,
+        if self.use_approximation {
+            chart
+                .draw_series(
+                    LineSeries::new(
+                        self.x_data
+                            .iter()
+                            .zip(self.y_data_appx.iter())
+                            .map(|(x, y)| (*x, *y)),
+                        RED,
+                    )
+                    .point_size(5),
                 )
-                .point_size(5),
-            )
-            .unwrap()
-            .label("Approximated solution");
+                .unwrap()
+                .label("Approximated solution");
+        }
 
         chart
             .configure_series_labels()

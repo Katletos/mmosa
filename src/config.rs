@@ -15,6 +15,7 @@ pub struct SimulationConfig {
     pub production_time: Range<u32>,
     pub dancing_time: Range<u32>,
     pub consumption_time: Range<u32>,
+    pub use_logs: bool,
 }
 
 impl Display for SimulationConfig {
