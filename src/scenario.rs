@@ -29,7 +29,7 @@ pub fn run(config: EstimationConfig) {
 
         let mut total_results = Results::zeros();
         let mut results = Vec::<Results>::new();
-        for _ in 0..config.total {
+        for _ in 0..config.experiment.total {
             let sim = Simulation::with_config(simulation_config.clone());
             let (run_result, _run_log) = sim.run();
 
@@ -37,7 +37,7 @@ pub fn run(config: EstimationConfig) {
             results.push(run_result);
         }
 
-        total_results.norm_mut(config.total);
+        total_results.norm_mut(config.experiment.total);
 
         scenario_results.push(total_results);
     }

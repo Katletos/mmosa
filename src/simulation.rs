@@ -208,7 +208,7 @@ impl Simulation {
             .for_each(|e| self.events.push_back(e));
     }
 
-    fn partial_result(&self) -> Results {
+    fn partial_result(&mut self) -> Results {
         result_of(self)
     }
 
