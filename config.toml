@@ -17,7 +17,12 @@ total = 1_000
 continous = false
 parameter = "waiting_time"
 
-[scenario]
-parameter = "tables"
+[[scenario.parameters]]
+kind = "tables"
 values = { start = 1, end = 10 } 
 step = 1
+
+[[scenario.parameters]]
+kind = "clients"
+values = { start = 40, end = 80 } 
+step = 5

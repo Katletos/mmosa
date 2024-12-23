@@ -1,6 +1,8 @@
 use nalgebra::{DMatrix, DVector};
 use plotters::prelude::*;
 
+use crate::statistic::StatsConfig;
+
 pub struct Linear<'a> {
     pub title: &'a str,
     pub x_data: Vec<f64>,
@@ -8,6 +10,7 @@ pub struct Linear<'a> {
 
     pub y_data_appx: Vec<f64>,
     pub use_approximation: bool,
+    pub config: Option<&'a StatsConfig>,
 }
 
 impl<'a> Linear<'a> {
@@ -23,11 +26,19 @@ impl<'a> Linear<'a> {
             x_data,
             y_data,
             use_approximation: true,
+            config: None,
         }
     }
 
     pub fn use_approximation(&mut self, use_it: bool) -> &mut Self {
         self.use_approximation = use_it;
+
+        self
+    }
+
+    #[allow(unused)]
+    pub fn set_config(&mut self, config: &'a StatsConfig) -> &mut Self {
+        self.config = Some(config);
 
         self
     }
@@ -72,19 +83,44 @@ impl<'a> Linear<'a> {
 
         if self.use_approximation {
             chart
-                .draw_series(
-                    LineSeries::new(
-                        self.x_data
-                            .iter()
-                            .zip(self.y_data_appx.iter())
-                            .map(|(x, y)| (*x, *y)),
-                        RED,
-                    )
-                    .point_size(5),
-                )
+                .draw_series(LineSeries::new(
+                    self.x_data
+                        .iter()
+                        .zip(self.y_data_appx.iter())
+                        .map(|(x, y)| (*x, *y)),
+                    RED,
+                ))
                 .unwrap()
                 .label("Approximated solution");
         }
+
+        // if let Some(config) = self.config {
+        //     let stats = Stats::new(&self.y_data, config);
+        //
+        //     let size = 100.0;
+        //
+        //     for (&x, &y) in self.y_data.iter().zip(self.x_data.iter()) {
+        //         chart
+        //             .draw_series(PointSeries::of_element(
+        //                 vec![(x, y)],
+        //                 5.0,
+        //                 RED,
+        //                 &|c, s, st| {
+        //                     Circle::new(
+        //                         0.0,
+        //                         size,
+        //                         ShapeStyle {
+        //                             color: RED.into(),
+        //                             filled: true,
+        //                             stroke_width: 0,
+        //                         }
+        //                         .into(),
+        //                     )
+        //                 },
+        //             ))
+        //             .unwrap();
+        //     }
+        // }
 
         chart
             .configure_series_labels()

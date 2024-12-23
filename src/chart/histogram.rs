@@ -74,7 +74,7 @@ impl<'a> Histogram<'a> {
 
         chart.configure_mesh().draw().unwrap();
 
-        let stats = Stats::new(&self.y_data, self.bins, config);
+        let stats = Stats::new_normal(&self.y_data, self.bins, config);
 
         chart
             .draw_series(plot_samples.into_iter().map(|(range, count)| {

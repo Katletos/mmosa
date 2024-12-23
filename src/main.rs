@@ -8,6 +8,8 @@ mod scenario;
 mod simulation;
 mod statistic;
 
+use std::fs;
+
 pub use config::{EstimationConfig, SimulationConfig};
 pub use event::Event;
 pub use experiment::ExperimentConfig;
@@ -16,7 +18,7 @@ pub use results::Results;
 pub use simulation::{Simulation, SimulationTick};
 pub use statistic::Stats;
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
         .init();
@@ -29,9 +31,19 @@ fn main() {
             .expect("Failed to parse config")
     };
 
-    chart::HyperPlane::from_data(vec![-1.0, 1.0], vec![-1.0, 1.0], vec![-1.0, 1.0], "HyperPlane")
-        .save("3d.png")
-        .unwrap();
+    let directories = vec![
+        "stats/logs",
+        "stats/multi",
+        "stats/scenario",
+        "stats/single_run",
+    ];
+
+    for dir_path in directories.into_iter() {
+        if fs::metadata(dir_path).is_ok() {
+            fs::remove_dir_all(dir_path)?;
+        }
+        fs::create_dir_all(dir_path)?;
+    }
 
     experiment::run(config.clone());
 
@@ -41,4 +53,6 @@ fn main() {
         scenario::run(config);
         log::info!("Scenario is finished");
     }
+
+    Ok(())
 }

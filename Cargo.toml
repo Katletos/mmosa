@@ -9,6 +9,8 @@ env_logger = "0.11.5"
 log = "0.4.22"
 lstsq = "0.6.0"
 nalgebra = "0.33.2"
+ndarray = "0.15"
+ndarray-interp = "0.4.1"
 plotters = { version = "0.3", features = ["evcxr", "all_series", "all_elements", "bitmap_backend", "image"] }
 rand = "0.9.0-alpha.2"
 rayon = "1.10.0"

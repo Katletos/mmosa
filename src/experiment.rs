@@ -290,3 +290,4 @@ pub fn run(config: EstimationConfig) {
     .save("stats/single_run/ConsumptionTime", &config.stats)
     .unwrap();
 }
+

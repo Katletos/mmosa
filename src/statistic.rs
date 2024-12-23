@@ -36,7 +36,31 @@ pub enum KsTest {
 }
 
 impl Stats {
-    pub fn new(data: &[f64], bins: usize, config: &StatsConfig) -> Self {
+    pub fn new(data: &[f64], config: &StatsConfig) -> Self {
+        let mean = data.mean();
+        let std_dev = data.std_dev();
+        let bins = data.len() - 1;
+
+        let value_range = {
+            let t_dist = StudentsT::new(0.0, 1.0, bins as f64).unwrap();
+            let t_critical = t_dist.inverse_cdf(1.0 - config.alpha / 2.0);
+
+            let t_margin = t_critical * std_dev / data.len() as f64;
+
+            (mean - t_margin)..(mean + t_margin)
+        };
+
+        Self {
+            mean,
+            std_dev,
+            value_range,
+            bins,
+            chi_test: None,
+            ks_test: None,
+        }
+    }
+
+    pub fn new_normal(data: &[f64], bins: usize, config: &StatsConfig) -> Self {
         let mean = data.mean();
         let std_dev = data.std_dev();
 
