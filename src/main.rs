@@ -10,11 +10,11 @@ mod statistic;
 
 pub use config::{EstimationConfig, SimulationConfig};
 pub use event::Event;
+pub use experiment::ExperimentConfig;
 pub use history::Log;
 pub use results::Results;
 pub use simulation::{Simulation, SimulationTick};
 pub use statistic::Stats;
-pub use experiment::ExperimentConfig;
 
 fn main() {
     env_logger::builder()
@@ -28,6 +28,10 @@ fn main() {
         toml::from_str::<EstimationConfig>(&raw_config)
             .expect("Failed to parse config")
     };
+
+    chart::HyperPlane::from_data(vec![-1.0, 1.0], vec![-1.0, 1.0], vec![-1.0, 1.0], "HyperPlane")
+        .save("3d.png")
+        .unwrap();
 
     experiment::run(config.clone());
 

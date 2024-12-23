@@ -289,6 +289,4 @@ pub fn run(config: EstimationConfig) {
     )
     .save("stats/single_run/ConsumptionTime", &config.stats)
     .unwrap();
-
-    log::info!("Single run vizualization is finished");
 }
