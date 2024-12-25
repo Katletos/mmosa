@@ -4,12 +4,23 @@ use statrs::{
     statistics::Statistics,
 };
 
-use crate::{chart::Linear, EstimationConfig, Log, Results, Simulation};
+use crate::{
+    chart::Linear,
+    statistic::{f_test, t_test, FisherTest, StudentTest},
+    EstimationConfig, Log, Results, Simulation,
+};
 
-#[derive(Clone, serde::Serialize)]
+#[derive(serde::Serialize)]
+pub struct Test {
+    pub name: &'static str,
+    pub t_test: StudentTest,
+    pub f_test: FisherTest,
+}
+
+#[derive(serde::Serialize)]
 pub struct ExperimentResult {
     pub runs: Results,
-    pub warmup_gap: Option<Gap>,
+    pub tests: Vec<Test>,
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -30,8 +41,10 @@ pub enum BaseParameter {
 pub struct ExperimentConfig {
     /// total count of runs
     pub total: usize,
+    pub min_total: usize,
     /// use continous experiment (warmed up state)
     pub continous: bool,
+    pub gap_size: usize,
     pub parameter: BaseParameter,
 }
 
@@ -76,11 +89,6 @@ pub fn run(config: EstimationConfig) {
 
     assert!(config.experiment.total > 2, "At least 3 run must be set");
 
-    let mut min_gap = None;
-
-    let mut ts_values = vec![];
-    let mut td_values = vec![];
-
     let logs_entries = total_logs
         .iter()
         .map(|(_tick, entry)| entry.clone())
@@ -88,117 +96,6 @@ pub fn run(config: EstimationConfig) {
 
     let sim_duration = config.simulation.max_time as usize;
     assert_eq!(sim_duration, logs_entries.len());
-
-    for gap_size in 1..(sim_duration / 2) {
-        let mut big_ones = vec![]; //1 if higher all, 0 otherwise
-        let mut small_ones = vec![]; //1 if lower all, 0 otherwisse
-
-        let mut last_min = f32::MAX;
-        let mut last_max = f32::MIN;
-
-        (gap_size..sim_duration).for_each(|i| {
-            let v = match config.experiment.parameter {
-                BaseParameter::FreeWorkers => {
-                    logs_entries[i].average_free_workers
-                }
-                BaseParameter::BusyTables => {
-                    logs_entries[i].average_busy_tables
-                }
-                BaseParameter::WaitingTime => {
-                    logs_entries[i].average_worker_waiting_time
-                }
-            };
-
-            if v < last_min {
-                last_min = v;
-                small_ones.push(1.0f32);
-            } else {
-                small_ones.push(0.0f32);
-            }
-
-            if v > last_max {
-                last_max = v;
-                big_ones.push(1.0f32);
-            } else {
-                big_ones.push(0.0f32);
-            }
-        });
-
-        let rest_sim_duration = (sim_duration - gap_size) as f64;
-
-        let s = big_ones
-            .iter()
-            .zip(small_ones.iter())
-            .map(|(k, l)| (k + l) as f64)
-            .sum::<f64>();
-
-        let d = big_ones
-            .iter()
-            .zip(small_ones.iter())
-            .map(|(k, l)| (k - l) as f64)
-            .sum::<f64>();
-
-        let t_s = {
-            let mean = (20.0 * rest_sim_duration.ln() - 32.0).sqrt();
-            let std = (2.0 * rest_sim_duration.ln() - 3.4253).sqrt();
-            (s - mean).abs() / std
-        };
-
-        let t_d = {
-            let std = (2.0 * rest_sim_duration.ln() - 0.8456).sqrt();
-            d.abs() / std
-        };
-
-        let t_critical = StudentsT::new(0.0, 1.0, rest_sim_duration - 1.0)
-            .unwrap()
-            .inverse_cdf(1.0 - config.stats.alpha / 2.0);
-
-        if t_s < t_critical && t_d < t_critical {
-            min_gap = Some(Gap::Absolute(gap_size));
-            break;
-        }
-
-        if t_d < t_critical && min_gap.is_none() {
-            min_gap = Some(Gap::MeanVariance(gap_size));
-        }
-
-        ts_values.push(t_s);
-        td_values.push(t_d);
-    }
-
-    if min_gap.is_none() {
-        log::warn!("Failed to find min gap. Try more total runs");
-    }
-
-    log::info!("Min ts = {}", (&ts_values).min());
-    log::info!("Min td = {}", (&td_values).min());
-
-    let experiment_results = ExperimentResult {
-        runs: total_results,
-        warmup_gap: min_gap,
-    };
-
-    std::fs::write(
-        format!("{base_path}/results.toml"),
-        toml::to_string(&experiment_results).unwrap(),
-    )
-    .unwrap();
-
-    Linear::from_data(
-        "BusyTables over Time",
-        (0..(ts_values.len())).map(|v| v as f32).collect(),
-        ts_values.into_iter().map(|v| v as f32).collect(),
-    )
-    .save(&format!("{base_path}/TS"))
-    .unwrap();
-
-    Linear::from_data(
-        "BusyTables over Time",
-        (0..(td_values.len())).map(|v| v as f32).collect(),
-        td_values.into_iter().map(|v| v as f32).collect(),
-    )
-    .save(&format!("{base_path}/TD"))
-    .unwrap();
 
     Linear::from_data(
         "BusyTables over Time",
@@ -223,7 +120,7 @@ pub fn run(config: EstimationConfig) {
     .unwrap();
 
     Linear::from_data(
-        "WorkerWaitingTime Over Time",
+        "WaitingTime Over Time",
         total_logs.iter().map(|(tick, _)| tick as f32).collect(),
         total_logs
             .iter()
@@ -231,5 +128,99 @@ pub fn run(config: EstimationConfig) {
             .collect(),
     )
     .save(&format!("{base_path}/WaitingTime"))
+    .unwrap();
+
+    let long_data = results
+        .iter()
+        .skip(config.experiment.gap_size)
+        .cloned()
+        .collect::<Vec<_>>();
+
+    let short_data = results
+        .iter()
+        .skip(config.experiment.gap_size)
+        .take(config.experiment.min_total)
+        .cloned()
+        .collect::<Vec<_>>();
+
+    let experiment_results = ExperimentResult {
+        runs: total_results,
+        tests: vec![
+            Test {
+                name: "busy_tables",
+                t_test: t_test(
+                    &long_data
+                        .iter()
+                        .map(|r| r.average_busy_tables as f64)
+                        .collect::<Vec<_>>(),
+                    &short_data
+                        .iter()
+                        .map(|r| r.average_busy_tables as f64)
+                        .collect::<Vec<_>>(),
+                ),
+                f_test: f_test(
+                    &long_data
+                        .iter()
+                        .map(|r| r.average_busy_tables as f64)
+                        .collect::<Vec<_>>(),
+                    &short_data
+                        .iter()
+                        .map(|r| r.average_busy_tables as f64)
+                        .collect::<Vec<_>>(),
+                ),
+            },
+            Test {
+                name: "free_workers",
+                t_test: t_test(
+                    &long_data
+                        .iter()
+                        .map(|r| r.average_free_workers as f64)
+                        .collect::<Vec<_>>(),
+                    &short_data
+                        .iter()
+                        .map(|r| r.average_free_workers as f64)
+                        .collect::<Vec<_>>(),
+                ),
+                f_test: f_test(
+                    &long_data
+                        .iter()
+                        .map(|r| r.average_free_workers as f64)
+                        .collect::<Vec<_>>(),
+                    &short_data
+                        .iter()
+                        .map(|r| r.average_free_workers as f64)
+                        .collect::<Vec<_>>(),
+                ),
+            },
+            Test {
+                name: "waiting_time",
+                t_test: t_test(
+                    &long_data
+                        .iter()
+                        .map(|r| r.average_worker_waiting_time as f64)
+                        .collect::<Vec<_>>(),
+                    &short_data
+                        .iter()
+                        .map(|r| r.average_worker_waiting_time as f64)
+                        .collect::<Vec<_>>(),
+                ),
+                f_test: f_test(
+                    &long_data
+                        .iter()
+                        .map(|r| r.average_worker_waiting_time as f64)
+                        .collect::<Vec<_>>(),
+                    &short_data
+                        .iter()
+                        .map(|r| r.average_worker_waiting_time as f64)
+                        .collect::<Vec<_>>(),
+                ),
+            },
+        ],
+    };
+
+    std::fs::write(
+        format!("{base_path}/results.toml"),
+        toml::to_string(&experiment_results).unwrap(),
+    )
     .unwrap();
 }

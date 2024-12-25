@@ -66,7 +66,7 @@ fn main() -> anyhow::Result<()> {
     task_3_3(&config);
     task_3_4(&config);
     task_3_5(&config);
-    // task_3_6(&config);
+    task_3_6(&config);
 
     Ok(())
 }

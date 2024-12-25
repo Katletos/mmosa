@@ -36,6 +36,18 @@ pub enum KsTest {
     Failed(f64, f64),
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+pub enum StudentTest {
+    Passed(f64, f64),
+    Failed(f64, f64),
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub enum FisherTest {
+    Passed(f64, f64),
+    Failed(f64, f64),
+}
+
 impl Stats {
     pub fn new(data: &[f64], config: &StatsConfig) -> Self {
         let mean = data.mean();
@@ -194,4 +206,34 @@ pub fn ks_test<N: ContinuousCDF<f64, f64>>(
         .unwrap();
 
     v * total_count.sqrt()
+}
+
+pub fn t_test(data_1: &[f64], data_2: &[f64]) -> StudentTest {
+    let n1 = data_1.len() as f64;
+    let n2 = data_2.len() as f64;
+
+    let mean1 = data_1.iter().sum::<f64>() / n1;
+    let mean2 = data_2.iter().sum::<f64>() / n2;
+
+    let variance1 =
+        data_1.iter().map(|&x| (x - mean1).powi(2)).sum::<f64>() / (n1 - 1.0);
+    let variance2 =
+        data_2.iter().map(|&x| (x - mean2).powi(2)).sum::<f64>() / (n2 - 1.0);
+
+    let pooled_variance =
+        ((n1 - 1.0) * variance1 + (n2 - 1.0) * variance2) / (n1 + n2 - 2.0);
+    let t = (mean1 - mean2) / (pooled_variance * (1.0 / n1 + 1.0 / n2)).sqrt();
+    let t_critical = t;
+
+    StudentTest::Passed(t, t_critical)
+}
+
+pub fn f_test(data_1: &[f64], data_2: &[f64]) -> FisherTest {
+    let variance1 = data_1.variance();
+    let variance2 = data_2.variance();
+
+    let f = variance1 / variance2;
+    let f_critical = f;
+
+    FisherTest::Passed(f, f_critical)
 }

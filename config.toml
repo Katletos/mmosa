@@ -14,8 +14,11 @@ alpha = 0.05
 
 [experiment]
 total = 1_000
+min_total = 300
 continous = true
 parameter = "waiting_time"
+gap_size = 1000
+
 
 # [[scenario.parameters]]
 # kind = "tables"

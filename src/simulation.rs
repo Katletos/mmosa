@@ -12,11 +12,11 @@ pub struct Simulation {
 
     events: VecDeque<Event>,
 
-    average_worker_waiting_time: Vec<u32>,
-    average_order_time: Vec<u32>,
-    average_consumption_time: Vec<u32>,
-    average_busy_tables: Vec<u32>,
-    average_free_workers: Vec<u32>,
+    average_worker_waiting_time: (f32, usize),
+    average_order_time: (f32, usize),
+    average_consumption_time: (f32, usize),
+    average_busy_tables: (f32, usize),
+    average_free_workers: (f32, usize),
     not_dispatched_clients: usize,
     dispatched_clients_count: usize,
     immediately_left_clients_count: usize,
@@ -37,11 +37,11 @@ impl Simulation {
 
             config,
             events: VecDeque::with_capacity(150),
-            average_worker_waiting_time: vec![],
-            average_order_time: vec![],
-            average_busy_tables: vec![],
-            average_free_workers: vec![],
-            average_consumption_time: vec![],
+            average_worker_waiting_time: (0.0, 0),
+            average_order_time: (0.0, 0),
+            average_busy_tables: (0.0, 0),
+            average_free_workers: (0.0, 0),
+            average_consumption_time: (0.0, 0),
             not_dispatched_clients: 0,
             dispatched_clients_count: 0,
             immediately_left_clients_count: 0,
@@ -72,11 +72,11 @@ impl Simulation {
     }
 
     pub fn reset_metrics(&mut self) {
-        self.average_worker_waiting_time.clear();
-        self.average_order_time.clear();
-        self.average_consumption_time.clear();
-        self.average_busy_tables.clear();
-        self.average_free_workers.clear();
+        self.average_worker_waiting_time = (0.0, 0);
+        self.average_order_time = (0.0, 0);
+        self.average_consumption_time = (0.0, 0);
+        self.average_busy_tables = (0.0, 0);
+        self.average_free_workers = (0.0, 0);
 
         self.not_dispatched_clients = 0;
         self.dispatched_clients_count = 0;
@@ -112,8 +112,9 @@ impl Simulation {
                     log::trace!("Client is waiting for worker");
                     if leave_time <= time {
                         self.available_tables += 1;
-                        self.average_worker_waiting_time
-                            .push(leave_time - start_time);
+                        self.average_worker_waiting_time.0 +=
+                            (leave_time - start_time) as f32;
+                        self.average_worker_waiting_time.1 += 1;
 
                         if is_first_time {
                             self.not_dispatched_clients += 1;
@@ -136,8 +137,9 @@ impl Simulation {
                             free_worker_time,
                         ));
 
-                        self.average_worker_waiting_time
-                            .push(time - start_time);
+                        self.average_worker_waiting_time.0 +=
+                            (time - start_time) as f32;
+                        self.average_worker_waiting_time.1 += 1;
                     } else {
                         new_events.push_back(Event::WaitingForWorker(
                             start_time,
@@ -157,7 +159,8 @@ impl Simulation {
                         let producing_time = thread_rng()
                             .gen_range(self.config.production_time.clone());
 
-                        self.average_order_time.push(producing_time);
+                        self.average_order_time.0 += producing_time as f32;
+                        self.average_order_time.1 += 1;
 
                         let finish_food_time = producing_time + time;
                         new_events
@@ -177,7 +180,9 @@ impl Simulation {
                         let consumption_time = thread_rng()
                             .gen_range(self.config.consumption_time.clone());
 
-                        self.average_consumption_time.push(consumption_time);
+                        self.average_consumption_time.0 +=
+                            consumption_time as f32;
+                        self.average_consumption_time.1 += 1;
 
                         let end_consume_time = consumption_time + time;
 
@@ -219,8 +224,11 @@ impl Simulation {
 
         let busy_tables = self.config.tables - self.available_tables;
 
-        self.average_busy_tables.push(busy_tables);
-        self.average_free_workers.push(self.available_workers);
+        self.average_busy_tables.0 += busy_tables as f32;
+        self.average_busy_tables.1 += 1;
+
+        self.average_free_workers.0 += self.available_workers as f32;
+        self.average_free_workers.1 += 1;
 
         new_events
             .into_iter()
@@ -241,24 +249,20 @@ impl Simulation {
 }
 
 fn result_of(sim: &Simulation) -> Results {
-    let average_worker_waiting_time =
-        sim.average_worker_waiting_time.iter().sum::<u32>() as f32
-            / sim.average_worker_waiting_time.len() as f32;
+    let average_worker_waiting_time = sim.average_worker_waiting_time.0
+        / sim.average_worker_waiting_time.1 as f32;
 
-    let average_order_time = sim.average_order_time.iter().sum::<u32>() as f32
-        / sim.average_order_time.len() as f32;
+    let average_order_time =
+        sim.average_order_time.0 / sim.average_order_time.1 as f32;
 
-    let average_busy_tables = sim.average_busy_tables.iter().sum::<u32>()
-        as f32
-        / sim.average_busy_tables.len() as f32;
+    let average_busy_tables =
+        sim.average_busy_tables.0 / sim.average_busy_tables.1 as f32;
 
-    let average_free_workers = sim.average_free_workers.iter().sum::<u32>()
-        as f32
-        / sim.average_free_workers.len() as f32;
+    let average_free_workers =
+        sim.average_free_workers.0 / sim.average_free_workers.1 as f32;
 
     let average_consumption_time =
-        sim.average_consumption_time.iter().sum::<u32>() as f32
-            / sim.average_consumption_time.len() as f32;
+        sim.average_consumption_time.0 / sim.average_consumption_time.1 as f32;
 
     Results {
         average_consumption_time,
