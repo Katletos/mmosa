@@ -133,5 +133,5 @@ fn prepare_plot_samples(
 fn find_best_bins(y_count: usize) -> usize {
     let count = y_count as f64;
 
-    (count.log10().floor() + 1.0) as usize
+    (3.22 * count.log10().floor() + 1.0) as usize
 }
