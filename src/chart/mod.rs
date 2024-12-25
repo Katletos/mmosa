@@ -1,7 +1,9 @@
+mod bar;
 mod histogram;
-mod linear;
 mod hyperplane;
+mod linear;
 
+pub use bar::Bar;
 pub use histogram::Histogram;
-pub use linear::Linear;
 pub use hyperplane::HyperPlane;
+pub use linear::Linear;

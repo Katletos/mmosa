@@ -13,6 +13,8 @@ pub enum ParameterKind {
     Workers,
     Tables,
     Clients,
+    Dancing,
+    Production,
 }
 
 impl Display for ParameterKind {
@@ -33,7 +35,7 @@ pub struct ScenarioConfig {
     pub parameters: Vec<ScenarioParameter>,
 }
 
-pub fn run(config: EstimationConfig) {
+pub fn run(config: EstimationConfig, task_name: &str) {
     let scenario = config.scenario.clone().unwrap();
 
     assert!(scenario.parameters.len() <= 2);
@@ -82,7 +84,7 @@ pub fn run(config: EstimationConfig) {
                 .collect(),
         )
         .use_approximation(true)
-        .save("stats/3_4/DuspatchedClients")
+        .save(&format!("stats/{task_name}/DispatchedClients"))
         .unwrap();
 
         Linear::from_data(
@@ -94,7 +96,7 @@ pub fn run(config: EstimationConfig) {
                 .collect(),
         )
         .use_approximation(true)
-        .save("stats/3_4/NotDuspatchedClients")
+        .save(&format!("stats/{task_name}/NotDispatchedClients"))
         .unwrap();
 
         Linear::from_data(
@@ -106,7 +108,7 @@ pub fn run(config: EstimationConfig) {
                 .collect(),
         )
         .use_approximation(true)
-        .save("stats/3_4/BusyTables")
+        .save(&format!("stats/{task_name}/BusyTables"))
         .unwrap();
 
         Linear::from_data(
@@ -118,11 +120,11 @@ pub fn run(config: EstimationConfig) {
                 .collect(),
         )
         .use_approximation(true)
-        .save("stats/3_4/FreeWorkers")
+        .save(&format!("stats/{task_name}/FreeWorkers"))
         .unwrap();
 
         Linear::from_data(
-            "Free Worker",
+            "Waiting Time",
             parameters.clone(),
             scenario_results
                 .iter()
@@ -130,7 +132,7 @@ pub fn run(config: EstimationConfig) {
                 .collect(),
         )
         .use_approximation(true)
-        .save("stats/3_4/WaitingTime")
+        .save(&format!("stats/{task_name}/WaitingTime"))
         .unwrap();
     } else {
         assert!(scenario.parameters.len() == 2);
@@ -203,7 +205,7 @@ pub fn run(config: EstimationConfig) {
                 .iter()
                 .map(|r| r.average_free_workers as f64)
                 .collect(),
-            &format!("WaitingTime over X={} Z={}", x_param.kind, z_param.kind),
+            &format!("FreeWorkers over X={} Z={}", x_param.kind, z_param.kind),
         )
         .save("stats/multi/FreeWorkers")
         .unwrap();
@@ -228,6 +230,12 @@ fn config_builder(
                 config.tables = v;
             }
             ParameterKind::Clients => config.client_ratio = v as f64 / 100.0,
+            ParameterKind::Dancing => {
+                config.dancing_time = 1..v;
+            }
+            ParameterKind::Production => {
+                config.production_time = 1..v;
+            }
         }
 
         config

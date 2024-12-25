@@ -48,12 +48,12 @@ pub struct ExperimentConfig {
     pub parameter: BaseParameter,
 }
 
-pub fn run(config: EstimationConfig) {
+pub fn run(config: EstimationConfig, base_path: &str) -> Results {
     let mut total_results = Results::zeros();
     let mut total_logs = Log::empty();
     let mut results = Vec::<Results>::new();
 
-    let base_path = if config.experiment.continous {
+    if config.experiment.continous {
         let mut sim = Simulation::with_config(config.simulation.clone());
         for _ in 0..config.experiment.total {
             sim.reset_metrics();
@@ -63,7 +63,6 @@ pub fn run(config: EstimationConfig) {
 
             results.push(run_result);
         }
-        "stats/3_6/"
     } else {
         let tmp = (0..config.experiment.total)
             .into_par_iter()
@@ -80,9 +79,7 @@ pub fn run(config: EstimationConfig) {
 
             results.push(run_result);
         });
-
-        "stats/3_5/"
-    };
+    }
 
     total_results.norm_mut(config.experiment.total);
     total_logs.norm_mut(config.experiment.total);
@@ -130,6 +127,17 @@ pub fn run(config: EstimationConfig) {
     .save(&format!("{base_path}/WaitingTime"))
     .unwrap();
 
+    Linear::from_data(
+        "Dispatched Clients",
+        total_logs.iter().map(|(tick, _)| tick as f32).collect(),
+        total_logs
+            .iter()
+            .map(|(_, entry)| entry.dispatched_clients)
+            .collect(),
+    )
+    .save(&format!("{base_path}/DispatchedClients"))
+    .unwrap();
+
     let long_data = results
         .iter()
         .skip(config.experiment.gap_size)
@@ -144,7 +152,7 @@ pub fn run(config: EstimationConfig) {
         .collect::<Vec<_>>();
 
     let experiment_results = ExperimentResult {
-        runs: total_results,
+        runs: total_results.clone(),
         tests: vec![
             Test {
                 name: "busy_tables",
@@ -223,4 +231,6 @@ pub fn run(config: EstimationConfig) {
         toml::to_string(&experiment_results).unwrap(),
     )
     .unwrap();
+
+    total_results
 }

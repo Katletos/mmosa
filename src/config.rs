@@ -3,7 +3,9 @@ use std::{
     ops::Range,
 };
 
-use crate::{scenario::ScenarioConfig, statistic::StatsConfig, ExperimentConfig};
+use crate::{
+    scenario::ScenarioConfig, statistic::StatsConfig, ExperimentConfig,
+};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SimulationConfig {

@@ -13,9 +13,9 @@ consumption_time = { start = 1, end = 5 }
 alpha = 0.05
 
 [experiment]
-total = 1_000
+total = 10_000
 min_total = 300
-continous = true
+continous = false
 parameter = "waiting_time"
 gap_size = 1000
 

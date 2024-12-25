@@ -41,7 +41,9 @@ fn main() -> anyhow::Result<()> {
         "stats/3_5",
         "stats/3_6",
         "stats/4_1",
-        "stats/4_2",
+        "stats/4_2/1",
+        "stats/4_2/2",
+        "stats/4_2/3",
         "stats/4_3",
     ];
 
@@ -52,21 +54,12 @@ fn main() -> anyhow::Result<()> {
         fs::create_dir_all(dir_path)?;
     }
 
-    // experiment::run(config.clone());
+    let tasks = [
+        task_3_1, task_3_2, task_3_3, task_3_4, task_3_5, task_3_6, task_4_1,
+        task_4_2, task_4_3,
+    ];
 
-    log::info!("Experiment is finished");
-
-    // if config.scenario.is_some() {
-    //     scenario::run(config);
-    //     log::info!("Scenario is finished");
-    // }
-
-    task_3_1(&config);
-    task_3_2(&config);
-    task_3_3(&config);
-    task_3_4(&config);
-    task_3_5(&config);
-    task_3_6(&config);
+    tasks.into_par_iter().for_each(|task| task(&config));
 
     Ok(())
 }
@@ -247,7 +240,7 @@ fn task_3_4(config: &EstimationConfig) {
         }],
     });
 
-    scenario::run(config);
+    scenario::run(config, "3_4");
 }
 
 fn task_3_5(config: &EstimationConfig) {
@@ -255,7 +248,7 @@ fn task_3_5(config: &EstimationConfig) {
     config.experiment.continous = false;
     config.experiment.total = 10_000;
 
-    experiment::run(config);
+    experiment::run(config, "stats/3_5/");
 }
 
 fn task_3_6(config: &EstimationConfig) {
@@ -263,5 +256,99 @@ fn task_3_6(config: &EstimationConfig) {
     config.experiment.continous = true;
     config.experiment.total = 10_000;
 
-    experiment::run(config);
+    experiment::run(config, "stats/3_6/");
+}
+
+fn task_4_1(config: &EstimationConfig) {
+    let mut config = config.clone();
+    config.scenario = Some(ScenarioConfig {
+        parameters: vec![ScenarioParameter {
+            kind: scenario::ParameterKind::Tables,
+            values: 1..15,
+            step: 1,
+        }],
+    });
+
+    scenario::run(config, "4_1");
+}
+
+fn task_4_2(config: &EstimationConfig) {
+    let mut config = config.clone();
+    config.experiment.continous = false;
+
+    config.simulation.workers = 2;
+    config.simulation.dancing_time = 1..4;
+    let r1 = experiment::run(config.clone(), "stats/4_2/1");
+
+    config.simulation.workers = 5;
+    config.simulation.dancing_time = 2..8;
+    let r2 = experiment::run(config.clone(), "stats/4_2/2");
+
+    config.simulation.workers = 10;
+    config.simulation.dancing_time = 4..12;
+    let r3 = experiment::run(config.clone(), "stats/4_2/3");
+
+    chart::Bar::from_y_data(
+        "BusyTables",
+        vec![
+            r1.average_busy_tables,
+            r2.average_busy_tables,
+            r3.average_busy_tables,
+        ],
+    )
+    .save("stats/4_2/BusyTables")
+    .unwrap();
+
+    chart::Bar::from_y_data(
+        "FreeWorkers",
+        vec![
+            r1.average_free_workers,
+            r2.average_free_workers,
+            r3.average_free_workers,
+        ],
+    )
+    .save("stats/4_2/FreeWorkers")
+    .unwrap();
+
+    chart::Bar::from_y_data(
+        "WaitingTime",
+        vec![
+            r1.average_worker_waiting_time,
+            r2.average_worker_waiting_time,
+            r3.average_worker_waiting_time,
+        ],
+    )
+    .save("stats/4_2/WaitingTime")
+    .unwrap();
+
+    chart::Bar::from_y_data(
+        "DispatchedClients",
+        vec![
+            r1.dispatched_clients,
+            r2.dispatched_clients,
+            r3.dispatched_clients,
+        ],
+    )
+    .save("stats/4_2/DispatchedClients")
+    .unwrap();
+}
+
+fn task_4_3(config: &EstimationConfig) {
+    let mut config = config.clone();
+    config.scenario = Some(ScenarioConfig {
+        parameters: vec![
+            ScenarioParameter {
+                kind: scenario::ParameterKind::Production,
+                values: 2..6,
+                step: 1,
+            },
+            ScenarioParameter {
+                kind: scenario::ParameterKind::Dancing,
+                values: 2..8,
+                step: 1,
+            },
+        ],
+    });
+
+    scenario::run(config, "4_3");
 }
