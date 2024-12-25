@@ -4,10 +4,7 @@ use statrs::{
     statistics::Statistics,
 };
 
-use crate::{
-    chart::{Histogram, Linear},
-    EstimationConfig, Log, Results, Simulation,
-};
+use crate::{chart::Linear, EstimationConfig, Log, Results, Simulation};
 
 #[derive(Clone, serde::Serialize)]
 pub struct ExperimentResult {
@@ -43,7 +40,7 @@ pub fn run(config: EstimationConfig) {
     let mut total_logs = Log::empty();
     let mut results = Vec::<Results>::new();
 
-    if config.experiment.continous {
+    let base_path = if config.experiment.continous {
         let mut sim = Simulation::with_config(config.simulation.clone());
         for _ in 0..config.experiment.total {
             sim.reset_metrics();
@@ -53,6 +50,7 @@ pub fn run(config: EstimationConfig) {
 
             results.push(run_result);
         }
+        "stats/3_6/"
     } else {
         let tmp = (0..config.experiment.total)
             .into_par_iter()
@@ -69,7 +67,9 @@ pub fn run(config: EstimationConfig) {
 
             results.push(run_result);
         });
-    }
+
+        "stats/3_5/"
+    };
 
     total_results.norm_mut(config.experiment.total);
     total_logs.norm_mut(config.experiment.total);
@@ -179,20 +179,17 @@ pub fn run(config: EstimationConfig) {
     };
 
     std::fs::write(
-        "results.toml",
+        format!("{base_path}/results.toml"),
         toml::to_string(&experiment_results).unwrap(),
     )
     .unwrap();
-
-    log::info!("Single run is finished");
 
     Linear::from_data(
         "BusyTables over Time",
         (0..(ts_values.len())).map(|v| v as f32).collect(),
         ts_values.into_iter().map(|v| v as f32).collect(),
     )
-    .use_approximation(false)
-    .save("stats/logs/TS")
+    .save(&format!("{base_path}/TS"))
     .unwrap();
 
     Linear::from_data(
@@ -200,8 +197,7 @@ pub fn run(config: EstimationConfig) {
         (0..(td_values.len())).map(|v| v as f32).collect(),
         td_values.into_iter().map(|v| v as f32).collect(),
     )
-    .use_approximation(false)
-    .save("stats/logs/TD")
+    .save(&format!("{base_path}/TD"))
     .unwrap();
 
     Linear::from_data(
@@ -212,8 +208,7 @@ pub fn run(config: EstimationConfig) {
             .map(|(_, entry)| entry.average_busy_tables)
             .collect(),
     )
-    .use_approximation(false)
-    .save("stats/logs/BusyTables")
+    .save(&format!("{base_path}/BusyTables"))
     .unwrap();
 
     Linear::from_data(
@@ -224,8 +219,7 @@ pub fn run(config: EstimationConfig) {
             .map(|(_, entry)| entry.average_free_workers)
             .collect(),
     )
-    .use_approximation(false)
-    .save("stats/logs/FreeWorkers")
+    .save(&format!("{base_path}/FreeWorkers"))
     .unwrap();
 
     Linear::from_data(
@@ -236,58 +230,6 @@ pub fn run(config: EstimationConfig) {
             .map(|(_, entry)| entry.average_worker_waiting_time)
             .collect(),
     )
-    .use_approximation(false)
-    .save("stats/logs/WaitingTime")
-    .unwrap();
-
-    log::info!("Logs visualization is finished");
-
-    Histogram::from_y_data(
-        "Average Waiting time",
-        results
-            .iter()
-            .map(|r| r.average_worker_waiting_time)
-            .collect(),
-    )
-    .save("stats/single_run/WaitingTime", &config.stats)
-    .unwrap();
-
-    Histogram::from_y_data(
-        "Average busy tables",
-        results.iter().map(|r| r.average_busy_tables).collect(),
-    )
-    .save("stats/single_run/BusyTables", &config.stats)
-    .unwrap();
-
-    Histogram::from_y_data(
-        "Average free workers",
-        results.iter().map(|r| r.average_free_workers).collect(),
-    )
-    .save("stats/single_run/FreeWorkers", &config.stats)
-    .unwrap();
-
-    Histogram::from_y_data(
-        "Immediate left client",
-        results
-            .iter()
-            .map(|r| r.immediately_left_clients_count)
-            .collect(),
-    )
-    .save("stats/single_run/ImmediateClients", &config.stats)
-    .unwrap();
-
-    Histogram::from_y_data(
-        "Average order time",
-        results.iter().map(|r| r.average_order_time).collect(),
-    )
-    .save("stats/single_run/OrderTime", &config.stats)
-    .unwrap();
-
-    Histogram::from_y_data(
-        "Average consumption time",
-        results.iter().map(|r| r.average_consumption_time).collect(),
-    )
-    .save("stats/single_run/ConsumptionTime", &config.stats)
+    .save(&format!("{base_path}/WaitingTime"))
     .unwrap();
 }
-

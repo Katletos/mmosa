@@ -11,6 +11,7 @@ pub struct Stats {
     pub std_dev: f64,
 
     pub value_range: Range<f64>,
+    pub t_stat: f64,
 
     pub chi_test: Option<ChiTest>,
     pub ks_test: Option<KsTest>,
@@ -41,13 +42,13 @@ impl Stats {
         let std_dev = data.std_dev();
         let bins = data.len() - 1;
 
-        let value_range = {
+        let (value_range, t_stat) = {
             let t_dist = StudentsT::new(0.0, 1.0, bins as f64).unwrap();
-            let t_critical = t_dist.inverse_cdf(1.0 - config.alpha / 2.0);
+            let t_critical = t_dist.inverse_cdf(1.0 - config.alpha);
 
             let t_margin = t_critical * std_dev / data.len() as f64;
 
-            (mean - t_margin)..(mean + t_margin)
+            ((mean - t_margin)..(mean + t_margin), t_margin)
         };
 
         Self {
@@ -55,6 +56,7 @@ impl Stats {
             std_dev,
             value_range,
             bins,
+            t_stat,
             chi_test: None,
             ks_test: None,
         }
@@ -98,16 +100,17 @@ impl Stats {
             None
         };
 
-        let value_range = {
+        let (value_range, t_stat) = {
             let t_dist = StudentsT::new(0.0, 1.0, bins as f64).unwrap();
             let t_critical = t_dist.inverse_cdf(1.0 - config.alpha / 2.0);
 
             let t_margin = t_critical * std_dev / data.len() as f64;
 
-            (mean - t_margin)..(mean + t_margin)
+            ((mean - t_margin)..(mean + t_margin), t_margin)
         };
 
         Self {
+            t_stat,
             mean,
             std_dev,
             value_range,

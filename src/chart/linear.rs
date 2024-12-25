@@ -1,14 +1,13 @@
 use nalgebra::{DMatrix, DVector};
 use plotters::prelude::*;
 
-use crate::statistic::StatsConfig;
+use crate::{statistic::StatsConfig, Stats};
 
 pub struct Linear<'a> {
     pub title: &'a str,
     pub x_data: Vec<f64>,
     pub y_data: Vec<f64>,
 
-    pub y_data_appx: Vec<f64>,
     pub use_approximation: bool,
     pub config: Option<&'a StatsConfig>,
 }
@@ -22,10 +21,9 @@ impl<'a> Linear<'a> {
 
         Self {
             title,
-            y_data_appx: find_approximation(&x_data, &y_data),
             x_data,
             y_data,
-            use_approximation: true,
+            use_approximation: false,
             config: None,
         }
     }
@@ -36,7 +34,6 @@ impl<'a> Linear<'a> {
         self
     }
 
-    #[allow(unused)]
     pub fn set_config(&mut self, config: &'a StatsConfig) -> &mut Self {
         self.config = Some(config);
 
@@ -81,46 +78,59 @@ impl<'a> Linear<'a> {
             .unwrap()
             .label("Data");
 
+        if let Some(config) = self.config {
+            let stats = Stats::new(&self.y_data, config);
+
+            chart
+                .draw_series(
+                    LineSeries::new(
+                        self.x_data
+                            .iter()
+                            .map(|x| (*x, stats.value_range.start)),
+                        GREEN,
+                    )
+                    .point_size(4),
+                )
+                .unwrap()
+                .label(format!("Low = {}", stats.value_range.start));
+
+            chart
+                .draw_series(
+                    LineSeries::new(
+                        self.x_data.iter().map(|x| (*x, stats.value_range.end)),
+                        GREEN,
+                    )
+                    .point_size(4),
+                )
+                .unwrap()
+                .label(format!("High = {}", stats.value_range.end));
+
+            chart
+                .draw_series(
+                    LineSeries::new(
+                        self.x_data.iter().map(|x| (*x, stats.mean)),
+                        RED,
+                    )
+                    .point_size(4),
+                )
+                .unwrap()
+                .label(format!("Mean = {}", stats.mean));
+        }
+
         if self.use_approximation {
+            let y_data_apprx = find_approximation(&self.x_data, &self.y_data);
+
             chart
                 .draw_series(LineSeries::new(
                     self.x_data
                         .iter()
-                        .zip(self.y_data_appx.iter())
+                        .zip(y_data_apprx.iter())
                         .map(|(x, y)| (*x, *y)),
                     RED,
                 ))
                 .unwrap()
                 .label("Approximated solution");
         }
-
-        // if let Some(config) = self.config {
-        //     let stats = Stats::new(&self.y_data, config);
-        //
-        //     let size = 100.0;
-        //
-        //     for (&x, &y) in self.y_data.iter().zip(self.x_data.iter()) {
-        //         chart
-        //             .draw_series(PointSeries::of_element(
-        //                 vec![(x, y)],
-        //                 5.0,
-        //                 RED,
-        //                 &|c, s, st| {
-        //                     Circle::new(
-        //                         0.0,
-        //                         size,
-        //                         ShapeStyle {
-        //                             color: RED.into(),
-        //                             filled: true,
-        //                             stroke_width: 0,
-        //                         }
-        //                         .into(),
-        //                     )
-        //                 },
-        //             ))
-        //             .unwrap();
-        //     }
-        // }
 
         chart
             .configure_series_labels()

@@ -1,6 +1,6 @@
 [simulation]
 use_logs = true
-max_time = 40_000
+max_time = 10_000
 
 workers = 2
 tables = 10
@@ -14,13 +14,13 @@ alpha = 0.05
 
 [experiment]
 total = 1_000
-continous = false
+continous = true
 parameter = "waiting_time"
 
-[[scenario.parameters]]
-kind = "tables"
-values = { start = 1, end = 10 } 
-step = 1
+# [[scenario.parameters]]
+# kind = "tables"
+# values = { start = 1, end = 10 } 
+# step = 1
 
 [[scenario.parameters]]
 kind = "clients"

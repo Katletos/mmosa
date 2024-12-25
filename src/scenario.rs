@@ -81,7 +81,8 @@ pub fn run(config: EstimationConfig) {
                 .map(|r| r.dispatched_clients)
                 .collect(),
         )
-        .save("stats/scenario/DuspatchedClients")
+        .use_approximation(true)
+        .save("stats/3_4/DuspatchedClients")
         .unwrap();
 
         Linear::from_data(
@@ -92,7 +93,8 @@ pub fn run(config: EstimationConfig) {
                 .map(|r| r.not_dispatched_clients)
                 .collect(),
         )
-        .save("stats/scenario/NotDuspatchedClients")
+        .use_approximation(true)
+        .save("stats/3_4/NotDuspatchedClients")
         .unwrap();
 
         Linear::from_data(
@@ -103,7 +105,8 @@ pub fn run(config: EstimationConfig) {
                 .map(|r| r.average_busy_tables)
                 .collect(),
         )
-        .save("stats/scenario/BusyTables")
+        .use_approximation(true)
+        .save("stats/3_4/BusyTables")
         .unwrap();
 
         Linear::from_data(
@@ -114,7 +117,8 @@ pub fn run(config: EstimationConfig) {
                 .map(|r| r.average_free_workers)
                 .collect(),
         )
-        .save("stats/scenario/FreeWorker")
+        .use_approximation(true)
+        .save("stats/3_4/FreeWorkers")
         .unwrap();
 
         Linear::from_data(
@@ -125,7 +129,8 @@ pub fn run(config: EstimationConfig) {
                 .map(|r| r.average_worker_waiting_time)
                 .collect(),
         )
-        .save("stats/scenario/WaitingTime")
+        .use_approximation(true)
+        .save("stats/3_4/WaitingTime")
         .unwrap();
     } else {
         assert!(scenario.parameters.len() == 2);
