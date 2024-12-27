@@ -37,13 +37,12 @@ pub struct ScenarioConfig {
 
 pub fn run(config: EstimationConfig, task_name: &str) {
     let scenario = config.scenario.clone().unwrap();
-
     assert!(scenario.parameters.len() <= 2);
+
     if scenario.parameters.len() == 1 {
         let mut scenario_results = vec![];
         let parameter = scenario.parameters[0].clone();
-        let build_config =
-            config_builder(config.simulation.clone(), &parameter);
+        let build_config = config_builder(config.simulation.clone(), &parameter);
 
         for v in parameter.values.clone().step_by(parameter.step as usize) {
             let simulation_config = build_config(v);
@@ -53,8 +52,7 @@ pub fn run(config: EstimationConfig, task_name: &str) {
             let tmp = (0..config.experiment.total)
                 .into_par_iter()
                 .map(|_| {
-                    let mut sim =
-                        Simulation::with_config(simulation_config.clone());
+                    let mut sim = Simulation::with_config(simulation_config.clone());
                     sim.run()
                 })
                 .collect::<Vec<_>>();
@@ -76,7 +74,7 @@ pub fn run(config: EstimationConfig, task_name: &str) {
             .collect::<Vec<f32>>();
 
         Linear::from_data(
-            "Dispatched clients",
+            "Dispatched clients from param",
             parameters.clone(),
             scenario_results
                 .iter()
@@ -87,8 +85,20 @@ pub fn run(config: EstimationConfig, task_name: &str) {
         .save(&format!("stats/{task_name}/DispatchedClients"))
         .unwrap();
 
+        // Linear::from_data(
+        //     "Avg worker waiting time",
+        //     parameters.clone(),
+        //     scenario_results
+        //         .iter()
+        //         .map(|r| r.average_worker_waiting_time)
+        //         .collect(),
+        // )
+        // .use_approximation(true)
+        // .save(&format!("stats/{task_name}/WorkerWaitingTime"))
+        // .unwrap();
+
         Linear::from_data(
-            "Not Dispatched clients",
+            "Not Dispatched clients from param",
             parameters.clone(),
             scenario_results
                 .iter()
@@ -100,7 +110,7 @@ pub fn run(config: EstimationConfig, task_name: &str) {
         .unwrap();
 
         Linear::from_data(
-            "Busy Tables",
+            "Busy Tables from param",
             parameters.clone(),
             scenario_results
                 .iter()
@@ -112,7 +122,7 @@ pub fn run(config: EstimationConfig, task_name: &str) {
         .unwrap();
 
         Linear::from_data(
-            "Free Worker",
+            "Free Worker from param",
             parameters.clone(),
             scenario_results
                 .iter()
@@ -124,7 +134,7 @@ pub fn run(config: EstimationConfig, task_name: &str) {
         .unwrap();
 
         Linear::from_data(
-            "Waiting Time",
+            "Waiting Time from param",
             parameters.clone(),
             scenario_results
                 .iter()
@@ -142,8 +152,7 @@ pub fn run(config: EstimationConfig, task_name: &str) {
 
         let mut scenario_results = Vec::<Results>::new();
 
-        let build_config_with_x =
-            config_builder(config.simulation.clone(), &x_param);
+        let build_config_with_x = config_builder(config.simulation.clone(), &x_param);
 
         for x in x_param.values.clone().step_by(x_param.step as usize) {
             let base_config = build_config_with_x(x);
@@ -156,8 +165,7 @@ pub fn run(config: EstimationConfig, task_name: &str) {
                 let tmp = (0..config.experiment.total)
                     .into_par_iter()
                     .map(|_| {
-                        let mut sim =
-                            Simulation::with_config(simulation_config.clone());
+                        let mut sim = Simulation::with_config(simulation_config.clone());
                         sim.run()
                     })
                     .collect::<Vec<_>>();

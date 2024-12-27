@@ -20,11 +20,9 @@ impl<'a> Bar<'a> {
             .unwrap()
             .clone();
 
-        let count =
-            (self.y_data.len() * 3 + (self.y_data.len() - 1) * 3) as f64;
+        let count = (self.y_data.len() * 3 + (self.y_data.len() - 1) * 3) as f64;
         let chart_name = format!("{file_name}.png");
-        let root =
-            BitMapBackend::new(&chart_name, (1024, 1024)).into_drawing_area();
+        let root = BitMapBackend::new(&chart_name, (1024, 1024)).into_drawing_area();
 
         root.fill(&WHITE).unwrap();
 

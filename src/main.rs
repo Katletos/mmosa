@@ -13,6 +13,19 @@
 //     4. Отобразить результаты решения задач с помощью диаграмм.
 //
 // - Во время симуляции изменять переменную и наблюдать за непрерывным откликом?
+//
+//
+//    Тема: постановка экспериментов с имитационной моделью
+//Для имитационной модели сложной системы согласно ЛР2 решить следующие задачи:
+// 1. построить зависимость отклика от варьирования параметра модели на 7+ уровнях,
+// 2. выполнить линейную и нелинейную (любую) аппроксимацию, сделать вывод о наилучшем приближении,
+//      учитывая погрешность имитации;
+// 3. реализовать эксперимент по сравнению трёх альтернатив использования объекта моделирования;
+// 4. поставить двухфакторный эксперимент (4+ уровня для каждого фактора) и отобразить поверхность отклика.
+// 5. Отобразить результаты решения задач с помощью диаграмм.
+
+// Каждому выбрать по отклику
+// отклик должен стабилизироваться
 
 mod app;
 mod chart;
@@ -39,9 +52,8 @@ pub use results::Results;
 use scenario::{ScenarioConfig, ScenarioParameter};
 pub use simulation::{Simulation, SimulationTick};
 pub use statistic::Stats;
-use statrs::distribution::{ContinuousCDF, StudentsT};
 
-fn main() {
+fn asdfmain() {
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
         .init();
@@ -59,10 +71,10 @@ fn main() {
     .unwrap();
 }
 
-fn oldmain() -> anyhow::Result<()> {
-    env_logger::builder()
-        .filter_level(log::LevelFilter::Info)
-        .init();
+fn main() -> anyhow::Result<()> {
+    // env_logger::builder()
+    //     .filter_level(log::LevelFilter::Info)
+    //     .init();
 
     let config = {
         let raw_config = std::fs::read_to_string("config.toml").expect("Failed to read config");
@@ -93,7 +105,6 @@ fn oldmain() -> anyhow::Result<()> {
     let tasks = [
         task_3_1, task_3_2, task_3_3, task_3_4, task_3_5, task_3_6, task_4_1, task_4_2, task_4_3,
     ];
-
     tasks.into_par_iter().for_each(|task| task(&config));
 
     Ok(())
@@ -123,24 +134,24 @@ fn task_3_1(config: &EstimationConfig) {
     total_logs.norm_mut(config.experiment.total);
 
     chart::Histogram::from_y_data(
-        "Average busy tables",
-        results.iter().map(|r| r.average_busy_tables).collect(),
-    )
-    .save("stats/3_1/BusyTables", &config.stats)
-    .unwrap();
-
-    chart::Histogram::from_y_data(
-        "Average free workers",
+        "Среднее кол-во свободных работников",
         results.iter().map(|r| r.average_free_workers).collect(),
     )
-    .save("stats/3_1/FreeWorkers", &config.stats)
+    .save("stats/3_1/average_free_workers", &config.stats)
     .unwrap();
 
     chart::Histogram::from_y_data(
-        "Immediate left client",
+        "Кол-во обслуженных клиентов",
         results.iter().map(|r| r.dispatched_clients).collect(),
     )
-    .save("stats/3_1/DispatchedClients", &config.stats)
+    .save("stats/3_1/dispatched_clients", &config.stats)
+    .unwrap();
+
+    chart::Histogram::from_y_data(
+        "Время ожидания работника",
+        results.iter().map(|r| r.average_worker_waiting_time).collect(),
+    )
+    .save("stats/3_1/waiting_time", &config.stats)
     .unwrap();
 }
 
@@ -156,33 +167,33 @@ fn task_3_2(config: &EstimationConfig) {
     }
 
     chart::Linear::from_data(
-        "BusyTables over Time",
-        (0..total).map(|v| v as f32).collect(),
-        results.iter().map(|r| r.average_busy_tables).collect(),
-    )
-    .use_approximation(false)
-    .set_config(&config.stats)
-    .save("stats/3_2/BusyTables")
-    .unwrap();
-
-    chart::Linear::from_data(
-        "Free Workers over Time",
+        "Свободные работники от времени симуляции",
         (0..total).map(|v| v as f32).collect(),
         results.iter().map(|r| r.average_free_workers).collect(),
     )
     .use_approximation(false)
     .set_config(&config.stats)
-    .save("stats/3_2/FreeWorkers")
+    .save("stats/3_2/free_workers")
     .unwrap();
 
     chart::Linear::from_data(
-        "Dispatched client over Time",
+        "Кол-во обслуженных клиентов",
         (0..total).map(|v| v as f32).collect(),
         results.iter().map(|r| r.dispatched_clients).collect(),
     )
     .use_approximation(false)
     .set_config(&config.stats)
-    .save("stats/3_2/DispatchedClients")
+    .save("stats/3_2/dispatched_clients")
+    .unwrap();
+
+    chart::Linear::from_data(
+        "Среднее время ожидания работника",
+        (0..total).map(|v| v as f32).collect(),
+        results.iter().map(|r| r.average_worker_waiting_time).collect(),
+    )
+    .use_approximation(false)
+    .set_config(&config.stats)
+    .save("stats/3_2/waiting_time")
     .unwrap();
 }
 
@@ -205,26 +216,7 @@ fn task_3_3(config: &EstimationConfig) {
     }
 
     chart::Linear::from_data(
-        "BusyTables over Time",
-        (0..total).map(|v| v as f32).collect(),
-        values
-            .iter()
-            .map(|data| {
-                let processed = data
-                    .iter()
-                    .map(|r| r.average_busy_tables as f64)
-                    .collect::<Vec<_>>();
-
-                let stats = Stats::new(&processed, &config.stats);
-                (2.0 * stats.std_dev * stats.t_stat) as f32 / (data.len() as f32).sqrt()
-            })
-            .collect(),
-    )
-    .save("stats/3_3/BusyTables")
-    .unwrap();
-
-    chart::Linear::from_data(
-        "FreeWorkers over Time",
+        "Свободные работники от времени симуляции",
         (0..total).map(|v| v as f32).collect(),
         values
             .iter()
@@ -239,11 +231,11 @@ fn task_3_3(config: &EstimationConfig) {
             })
             .collect(),
     )
-    .save("stats/3_3/FreeWorkers")
+    .save("stats/3_3/free_workers")
     .unwrap();
 
     chart::Linear::from_data(
-        "DispatchedClients over Time",
+        "Кол-во обслуженных клиентов over Time",
         (0..total).map(|v| v as f32).collect(),
         values
             .iter()
@@ -260,6 +252,25 @@ fn task_3_3(config: &EstimationConfig) {
     )
     .save("stats/3_3/DispatchedClients")
     .unwrap();
+
+    chart::Linear::from_data(
+        "Waiting time",
+        (0..total).map(|v| v as f32).collect(),
+        values
+            .iter()
+            .map(|data| {
+                let processed = data
+                    .iter()
+                    .map(|r| r.average_worker_waiting_time as f64)
+                    .collect::<Vec<_>>();
+
+                let stats = Stats::new(&processed, &config.stats);
+                (2.0 * stats.std_dev * stats.t_stat) as f32 / (data.len() as f32).sqrt()
+            })
+            .collect(),
+    )
+    .save("stats/3_3/waiting_time")
+    .unwrap();
 }
 
 // Change variable and see difference
@@ -269,7 +280,7 @@ fn task_3_4(config: &EstimationConfig) {
         parameters: vec![ScenarioParameter {
             kind: scenario::ParameterKind::Clients,
             values: 30..80,
-            step: 5,
+            step: 1,
         }],
     });
 
@@ -296,8 +307,8 @@ fn task_4_1(config: &EstimationConfig) {
     let mut config = config.clone();
     config.scenario = Some(ScenarioConfig {
         parameters: vec![ScenarioParameter {
-            kind: scenario::ParameterKind::Tables,
-            values: 1..15,
+            kind: scenario::ParameterKind::Production, // Production
+            values: 3..15,
             step: 1,
         }],
     });

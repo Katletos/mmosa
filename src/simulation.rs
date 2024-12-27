@@ -76,7 +76,6 @@ impl Simulation {
             self.generate_new_events(tick);
             self.process_tick(tick);
 
-
             if self.config.use_logs {
                 let part_results = self.partial_result();
                 log.append(tick - start_time, part_results);
@@ -126,8 +125,7 @@ impl Simulation {
                     log::trace!("Client is waiting for worker");
                     if leave_time <= time {
                         self.available_tables += 1;
-                        self.average_worker_waiting_time.0 +=
-                            (leave_time - start_time) as f32;
+                        self.average_worker_waiting_time.0 += (leave_time - start_time) as f32;
                         self.average_worker_waiting_time.1 += 1;
 
                         if is_first_time {
@@ -148,8 +146,7 @@ impl Simulation {
                         // let free_worker_time = time;
                         new_events.push_back(Event::WorkerWalkingDance(free_worker_time));
 
-                        self.average_worker_waiting_time.0 +=
-                            (time - start_time) as f32;
+                        self.average_worker_waiting_time.0 += (time - start_time) as f32;
                         self.average_worker_waiting_time.1 += 1;
                     } else {
                         new_events.push_back(Event::WaitingForWorker(
@@ -188,8 +185,7 @@ impl Simulation {
                         let consumption_time =
                             thread_rng().gen_range(self.config.consumption_time.clone());
 
-                        self.average_consumption_time.0 +=
-                            consumption_time as f32;
+                        self.average_consumption_time.0 += consumption_time as f32;
                         self.average_consumption_time.1 += 1;
 
                         let end_consume_time = consumption_time + time;
@@ -247,17 +243,14 @@ impl Simulation {
 }
 
 fn result_of(sim: &Simulation) -> Results {
-    let average_worker_waiting_time = sim.average_worker_waiting_time.0
-        / sim.average_worker_waiting_time.1 as f32;
+    let average_worker_waiting_time =
+        sim.average_worker_waiting_time.0 / sim.average_worker_waiting_time.1 as f32;
 
-    let average_order_time =
-        sim.average_order_time.0 / sim.average_order_time.1 as f32;
+    let average_order_time = sim.average_order_time.0 / sim.average_order_time.1 as f32;
 
-    let average_busy_tables =
-        sim.average_busy_tables.0 / sim.average_busy_tables.1 as f32;
+    let average_busy_tables = sim.average_busy_tables.0 / sim.average_busy_tables.1 as f32;
 
-    let average_free_workers =
-        sim.average_free_workers.0 / sim.average_free_workers.1 as f32;
+    let average_free_workers = sim.average_free_workers.0 / sim.average_free_workers.1 as f32;
 
     let average_consumption_time =
         sim.average_consumption_time.0 / sim.average_consumption_time.1 as f32;

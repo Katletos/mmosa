@@ -216,7 +216,7 @@ pub fn t_test(data_1: &[f64], data_2: &[f64]) -> StudentTest {
         .unwrap()
         .inverse_cdf(1.0 - CRITICAL_VALUE);
 
-    if t_critical < t {
+    if t < t_critical {
         StudentTest::Passed(t, t_critical)
     } else {
         StudentTest::Failed(t, t_critical)

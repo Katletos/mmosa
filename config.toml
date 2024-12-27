@@ -2,9 +2,9 @@
 use_logs = true
 max_time = 300
 
-workers = 10
-tables = 40
-client_ratio = 0.55
+workers = 8
+tables = 10
+client_ratio = 0.85
 production_time = { start = 1, end = 3 }
 dancing_time = { start = 10, end = 20 }
 consumption_time = { start = 1, end = 5 }
@@ -13,7 +13,7 @@ consumption_time = { start = 1, end = 5 }
 alpha = 0.05
 
 [experiment]
-total = 10_000
+total = 4000
 min_total = 300
 continous = false
 parameter = "waiting_time"

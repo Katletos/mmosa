@@ -8,6 +8,7 @@ pub struct Histogram<'a> {
     pub y_data: Vec<f64>,
     //the count of batch
     pub bins: usize,
+    pub use_stats: bool,
     pub title: &'a str,
 }
 
@@ -19,6 +20,7 @@ impl<'a> Histogram<'a> {
 
         Self {
             y_data,
+            use_stats: false,
             bins: find_best_bins(y_count),
             title,
         }
@@ -27,6 +29,12 @@ impl<'a> Histogram<'a> {
     #[allow(unused)]
     pub fn set_bins(&'a mut self, bins: usize) -> &'a Self {
         self.bins = bins;
+
+        self
+    }
+
+    pub fn use_stats(&'a mut self, stats: bool) -> &'a Self {
+        self.use_stats = stats;
 
         self
     }
@@ -91,6 +99,7 @@ impl<'a> Histogram<'a> {
             .border_style(BLACK)
             .draw()
             .unwrap();
+
 
         std::fs::write(
             format!("{file_name}.toml"),
