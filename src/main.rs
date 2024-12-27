@@ -39,6 +39,7 @@ pub use results::Results;
 use scenario::{ScenarioConfig, ScenarioParameter};
 pub use simulation::{Simulation, SimulationTick};
 pub use statistic::Stats;
+use statrs::distribution::{ContinuousCDF, StudentsT};
 
 fn main() {
     env_logger::builder()
@@ -68,9 +69,6 @@ fn oldmain() -> anyhow::Result<()> {
         toml::from_str::<EstimationConfig>(&raw_config).expect("Failed to parse config")
     };
 
-    tasks::task32(config);
-    return Ok(());
-
     let directories = vec![
         "stats/3_1",
         "stats/3_2",
@@ -93,8 +91,7 @@ fn oldmain() -> anyhow::Result<()> {
     }
 
     let tasks = [
-        task_3_1, task_3_2, task_3_3, task_3_4, task_3_5, task_3_6, task_4_1,
-        task_4_2, task_4_3,
+        task_3_1, task_3_2, task_3_3, task_3_4, task_3_5, task_3_6, task_4_1, task_4_2, task_4_3,
     ];
 
     tasks.into_par_iter().for_each(|task| task(&config));
@@ -219,8 +216,7 @@ fn task_3_3(config: &EstimationConfig) {
                     .collect::<Vec<_>>();
 
                 let stats = Stats::new(&processed, &config.stats);
-                (2.0 * stats.std_dev * stats.t_stat) as f32
-                    / (data.len() as f32).sqrt()
+                (2.0 * stats.std_dev * stats.t_stat) as f32 / (data.len() as f32).sqrt()
             })
             .collect(),
     )
@@ -239,8 +235,7 @@ fn task_3_3(config: &EstimationConfig) {
                     .collect::<Vec<_>>();
 
                 let stats = Stats::new(&processed, &config.stats);
-                (2.0 * stats.std_dev * stats.t_stat) as f32
-                    / (data.len() as f32).sqrt()
+                (2.0 * stats.std_dev * stats.t_stat) as f32 / (data.len() as f32).sqrt()
             })
             .collect(),
     )
@@ -259,8 +254,7 @@ fn task_3_3(config: &EstimationConfig) {
                     .collect::<Vec<_>>();
 
                 let stats = Stats::new(&processed, &config.stats);
-                (2.0 * stats.std_dev * stats.t_stat) as f32
-                    / (data.len() as f32).sqrt()
+                (2.0 * stats.std_dev * stats.t_stat) as f32 / (data.len() as f32).sqrt()
             })
             .collect(),
     )
@@ -268,6 +262,7 @@ fn task_3_3(config: &EstimationConfig) {
     .unwrap();
 }
 
+// Change variable and see difference
 fn task_3_4(config: &EstimationConfig) {
     let mut config = config.clone();
     config.scenario = Some(ScenarioConfig {

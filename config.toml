@@ -1,9 +1,9 @@
 [simulation]
 use_logs = true
-max_time = 10_000
+max_time = 300
 
 workers = 10
-tables = 10
+tables = 40
 client_ratio = 0.55
 production_time = { start = 1, end = 3 }
 dancing_time = { start = 10, end = 20 }

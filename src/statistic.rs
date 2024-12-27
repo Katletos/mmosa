@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use statrs::{
-    distribution::{ChiSquared, ContinuousCDF, Normal, StudentsT},
+    distribution::{ChiSquared, ContinuousCDF, FisherSnedecor, Normal, StudentsT},
     statistics::Statistics,
 };
 
@@ -57,12 +57,11 @@ impl Stats {
         let (value_range, t_stat) = {
             let t_dist = StudentsT::new(0.0, 1.0, bins as f64).unwrap();
             let t_critical = t_dist.inverse_cdf(1.0 - config.alpha);
-
-            let t_margin = t_critical * std_dev / data.len() as f64;
+            let t_margin = t_critical * std_dev / (data.len() as f64).sqrt();
 
             ((mean - t_margin)..(mean + t_margin), t_margin)
         };
-        
+
         Self {
             mean,
             std_dev,
@@ -206,25 +205,37 @@ pub fn t_test(data_1: &[f64], data_2: &[f64]) -> StudentTest {
     let mean1 = data_1.iter().sum::<f64>() / n1;
     let mean2 = data_2.iter().sum::<f64>() / n2;
 
-    let variance1 =
-        data_1.iter().map(|&x| (x - mean1).powi(2)).sum::<f64>() / (n1 - 1.0);
-    let variance2 =
-        data_2.iter().map(|&x| (x - mean2).powi(2)).sum::<f64>() / (n2 - 1.0);
+    let variance1 = data_1.iter().map(|&x| (x - mean1).powi(2)).sum::<f64>() / (n1 - 1.0);
+    let variance2 = data_2.iter().map(|&x| (x - mean2).powi(2)).sum::<f64>() / (n2 - 1.0);
 
-    let pooled_variance =
-        ((n1 - 1.0) * variance1 + (n2 - 1.0) * variance2) / (n1 + n2 - 2.0);
+    let pooled_variance = ((n1 - 1.0) * variance1 + (n2 - 1.0) * variance2) / (n1 + n2 - 2.0);
     let t = (mean1 - mean2) / (pooled_variance * (1.0 / n1 + 1.0 / n2)).sqrt();
-    let t_critical = t;
 
-    StudentTest::Passed(t, t_critical)
+    const CRITICAL_VALUE: f64 = 0.05;
+    let t_critical = StudentsT::new(0.0, 1.0, 3.0)
+        .unwrap()
+        .inverse_cdf(1.0 - CRITICAL_VALUE);
+
+    if t_critical < t {
+        StudentTest::Passed(t, t_critical)
+    } else {
+        StudentTest::Failed(t, t_critical)
+    }
 }
 
 pub fn f_test(data_1: &[f64], data_2: &[f64]) -> FisherTest {
     let variance1 = data_1.variance();
     let variance2 = data_2.variance();
 
-    let f = variance1 / variance2;
-    let f_critical = f;
+    let f = variance1.powi(2) / variance2.powi(2);
 
-    FisherTest::Passed(f, f_critical)
+    let f_critical = FisherSnedecor::new(data_1.len() as f64, data_2.len() as f64)
+        .unwrap()
+        .inverse_cdf(1.0 - 0.05);
+
+    if f < f_critical {
+        FisherTest::Passed(f, f_critical)
+    } else {
+        FisherTest::Failed(f, f_critical)
+    }
 }
