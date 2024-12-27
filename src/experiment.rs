@@ -60,15 +60,13 @@ pub fn run(config: EstimationConfig, base_path: &str) -> Results {
             let (run_result, run_log) = sim.run();
             total_results.add_mut(run_result.clone());
             total_logs.add_mut(run_log);
-
             results.push(run_result);
         }
     } else {
         let tmp = (0..config.experiment.total)
             .into_par_iter()
             .map(|_| {
-                let mut sim =
-                    Simulation::with_config(config.simulation.clone());
+                let mut sim = Simulation::with_config(config.simulation.clone());
                 sim.run()
             })
             .collect::<Vec<_>>();

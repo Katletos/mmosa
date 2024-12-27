@@ -2,11 +2,11 @@
 use_logs = true
 max_time = 10_000
 
-workers = 2
+workers = 10
 tables = 10
-client_ratio = 0.85
+client_ratio = 0.55
 production_time = { start = 1, end = 3 }
-dancing_time = { start = 2, end = 5 }
+dancing_time = { start = 10, end = 20 }
 consumption_time = { start = 1, end = 5 }
 
 [stats]

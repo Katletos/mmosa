@@ -17,6 +17,13 @@ pub struct Simulation {
     average_consumption_time: (f32, usize),
     average_busy_tables: (f32, usize),
     average_free_workers: (f32, usize),
+
+    average_worker_waiting_time_pre: f32,
+    average_order_time_pre: f32,
+    average_consumption_time_pre: f32,
+    average_busy_tables_pre: f32,
+    average_free_workers_pre: f32,
+
     not_dispatched_clients: usize,
     dispatched_clients_count: usize,
     immediately_left_clients_count: usize,
@@ -42,6 +49,13 @@ impl Simulation {
             average_busy_tables: (0.0, 0),
             average_free_workers: (0.0, 0),
             average_consumption_time: (0.0, 0),
+
+            average_worker_waiting_time_pre: 0.0,
+            average_order_time_pre: 0.0,
+            average_consumption_time_pre: 0.0,
+            average_busy_tables_pre: 0.0,
+            average_free_workers_pre: 0.0,
+
             not_dispatched_clients: 0,
             dispatched_clients_count: 0,
             immediately_left_clients_count: 0,
@@ -58,9 +72,10 @@ impl Simulation {
         self.world_time = Some(end_time);
 
         for tick in start_time..end_time {
-            log::trace!("-----Tick #{tick}-----");
+            log::trace!("---  Tick #{tick}  ---");
             self.generate_new_events(tick);
             self.process_tick(tick);
+
 
             if self.config.use_logs {
                 let part_results = self.partial_result();
@@ -77,6 +92,12 @@ impl Simulation {
         self.average_consumption_time = (0.0, 0);
         self.average_busy_tables = (0.0, 0);
         self.average_free_workers = (0.0, 0);
+
+        self.average_worker_waiting_time_pre = 0.0;
+        self.average_order_time_pre = 0.0;
+        self.average_consumption_time_pre = 0.0;
+        self.average_busy_tables_pre = 0.0;
+        self.average_free_workers_pre = 0.0;
 
         self.not_dispatched_clients = 0;
         self.dispatched_clients_count = 0;
@@ -95,20 +116,13 @@ impl Simulation {
                         self.available_tables -= 1;
 
                         let leave_time = thread_rng().gen_range(5..10) + time;
-                        new_events.push_back(Event::WaitingForWorker(
-                            time, leave_time, true,
-                        ));
+                        new_events.push_back(Event::WaitingForWorker(time, leave_time, true));
                     } else {
                         self.immediately_left_clients_count += 1;
                         log::trace!("Client leave immediately");
                     }
                 }
-
-                Event::WaitingForWorker(
-                    start_time,
-                    leave_time,
-                    is_first_time,
-                ) => {
+                Event::WaitingForWorker(start_time, leave_time, is_first_time) => {
                     log::trace!("Client is waiting for worker");
                     if leave_time <= time {
                         self.available_tables += 1;
@@ -129,13 +143,10 @@ impl Simulation {
 
                         self.available_workers -= 1;
 
-                        let free_worker_time = thread_rng()
-                            .gen_range(self.config.dancing_time.clone())
-                            + time;
+                        let free_worker_time =
+                            thread_rng().gen_range(self.config.dancing_time.clone()) + time;
                         // let free_worker_time = time;
-                        new_events.push_back(Event::WorkerWalkingDance(
-                            free_worker_time,
-                        ));
+                        new_events.push_back(Event::WorkerWalkingDance(free_worker_time));
 
                         self.average_worker_waiting_time.0 +=
                             (time - start_time) as f32;
@@ -156,20 +167,17 @@ impl Simulation {
                         assert!(self.available_workers <= self.config.workers);
                         //todo: add correlation producing time on workload
 
-                        let producing_time = thread_rng()
-                            .gen_range(self.config.production_time.clone());
+                        let producing_time =
+                            thread_rng().gen_range(self.config.production_time.clone());
 
                         self.average_order_time.0 += producing_time as f32;
                         self.average_order_time.1 += 1;
 
                         let finish_food_time = producing_time + time;
-                        new_events
-                            .push_back(Event::WaitingForFood(finish_food_time));
+                        new_events.push_back(Event::WaitingForFood(finish_food_time));
                     } else {
                         log::trace!("Worker is dancing");
-                        new_events.push_front(Event::WorkerWalkingDance(
-                            free_worker_time,
-                        ));
+                        new_events.push_front(Event::WorkerWalkingDance(free_worker_time));
                     }
                 }
 
@@ -177,8 +185,8 @@ impl Simulation {
                     if time >= finish_food_time {
                         log::trace!("Client starts consuming");
 
-                        let consumption_time = thread_rng()
-                            .gen_range(self.config.consumption_time.clone());
+                        let consumption_time =
+                            thread_rng().gen_range(self.config.consumption_time.clone());
 
                         self.average_consumption_time.0 +=
                             consumption_time as f32;
@@ -186,13 +194,10 @@ impl Simulation {
 
                         let end_consume_time = consumption_time + time;
 
-                        new_events
-                            .push_back(Event::ConsumeFood(end_consume_time));
+                        new_events.push_back(Event::ConsumeFood(end_consume_time));
                     } else {
                         log::trace!("Client is waiting for food");
-                        new_events.push_front(Event::WaitingForFood(
-                            finish_food_time,
-                        ));
+                        new_events.push_front(Event::WaitingForFood(finish_food_time));
                     }
                 }
 
@@ -202,11 +207,8 @@ impl Simulation {
                         let we_want_eat_more = thread_rng().gen_bool(0.2);
                         if we_want_eat_more {
                             log::trace!("Client wants mo-o-ore!!!");
-                            let leave_time =
-                                thread_rng().gen_range(1..3) + time;
-                            new_events.push_back(Event::WaitingForWorker(
-                                time, leave_time, false,
-                            ));
+                            let leave_time = thread_rng().gen_range(1..3) + time;
+                            new_events.push_back(Event::WaitingForWorker(time, leave_time, false));
                         } else {
                             self.dispatched_clients_count += 1;
                             self.available_tables += 1;
@@ -215,8 +217,7 @@ impl Simulation {
                         }
                     } else {
                         log::trace!("Client is consuming food");
-                        new_events
-                            .push_back(Event::ConsumeFood(end_consume_time));
+                        new_events.push_back(Event::ConsumeFood(end_consume_time));
                     }
                 }
             }
@@ -230,9 +231,7 @@ impl Simulation {
         self.average_free_workers.0 += self.available_workers as f32;
         self.average_free_workers.1 += 1;
 
-        new_events
-            .into_iter()
-            .for_each(|e| self.events.push_back(e));
+        self.events = new_events;
     }
 
     fn partial_result(&mut self) -> Results {
@@ -241,7 +240,6 @@ impl Simulation {
 
     fn generate_new_events(&mut self, tick: u32) {
         let is_client_arrived = thread_rng().gen_bool(self.config.client_ratio);
-
         if is_client_arrived {
             self.events.push_back(Event::Enter(tick));
         }
@@ -272,7 +270,6 @@ fn result_of(sim: &Simulation) -> Results {
         average_free_workers,
         dispatched_clients: sim.dispatched_clients_count as f32,
         not_dispatched_clients: sim.not_dispatched_clients as f32,
-        immediately_left_clients_count: sim.immediately_left_clients_count
-            as f32,
+        immediately_left_clients_count: sim.immediately_left_clients_count as f32,
     }
 }

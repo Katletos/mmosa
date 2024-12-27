@@ -49,8 +49,7 @@ impl<'a> Linear<'a> {
         let min_y = self.y_data.iter().fold(f64::MAX, |a, b| a.min(*b));
         let max_y = self.y_data.iter().fold(f64::MIN, |a, b| a.max(*b));
 
-        let root =
-            BitMapBackend::new(&chart_name, (1024, 1024)).into_drawing_area();
+        let root = BitMapBackend::new(&chart_name, (1024, 1024)).into_drawing_area();
 
         root.fill(&WHITE).unwrap();
 
@@ -142,6 +141,7 @@ impl<'a> Linear<'a> {
         Ok(())
     }
 }
+
 fn find_approximation(x: &[f64], y: &[f64]) -> Vec<f64> {
     let x_matrix = DMatrix::from_columns(&[
         DVector::from_element(x.len(), 1.0),
@@ -150,8 +150,7 @@ fn find_approximation(x: &[f64], y: &[f64]) -> Vec<f64> {
     let y = DVector::from_row_slice(y);
 
     let eps = 1e-14;
-    let results =
-        lstsq::lstsq(&x_matrix, &y, eps).expect("Failed to solve lst sqt");
+    let results = lstsq::lstsq(&x_matrix, &y, eps).expect("Failed to solve lst sqt");
 
     let y_pred = x_matrix * &results.solution;
 

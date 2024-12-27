@@ -31,11 +31,7 @@ impl<'a> Histogram<'a> {
         self
     }
 
-    pub fn save(
-        &'a self,
-        file_name: &str,
-        config: &StatsConfig,
-    ) -> std::io::Result<()> {
+    pub fn save(&'a self, file_name: &str, config: &StatsConfig) -> std::io::Result<()> {
         let plot_samples = prepare_plot_samples(&self.y_data, self.bins);
         let total_count = self.y_data.len();
 
@@ -59,8 +55,7 @@ impl<'a> Histogram<'a> {
             .unwrap();
 
         let chart_name = format!("{file_name}.png");
-        let root =
-            BitMapBackend::new(&chart_name, (1024, 1024)).into_drawing_area();
+        let root = BitMapBackend::new(&chart_name, (1024, 1024)).into_drawing_area();
 
         root.fill(&WHITE).unwrap();
 
@@ -107,10 +102,7 @@ impl<'a> Histogram<'a> {
     }
 }
 
-fn prepare_plot_samples(
-    samples: &[f64],
-    batch_count: usize,
-) -> Vec<(Range<f64>, usize)> {
+fn prepare_plot_samples(samples: &[f64], batch_count: usize) -> Vec<(Range<f64>, usize)> {
     let min_y = *samples.iter().min_by(|a, b| a.total_cmp(b)).unwrap();
     let max_y = *samples.iter().max_by(|a, b| a.total_cmp(b)).unwrap();
     let batch_value_step = (max_y - min_y) / batch_count as f64;
@@ -132,6 +124,5 @@ fn prepare_plot_samples(
 
 fn find_best_bins(y_count: usize) -> usize {
     let count = y_count as f64;
-
     (3.22 * count.log10().floor() + 1.0) as usize
 }

@@ -1,5 +1,23 @@
+// Лабораторная работа №3
+// Тема: исследование свойств имитационной модели.
+//     3. Для имитационной модели сложной системы согласно ЛР2 решить следующие задачи:
+//         3.1. проверить гипотезу о нормальности распределения откликов;
+//              -> Сделать histogram'y, проверить её по какой-то метрике
+//         3.2. вычислить точечные и интервальные оценки откликов ИМ в опыте из 10 прогонов при уровне значимости 0.05;
+//              -> Вычислить оценку
+//         3.3. оценить зависимость точности имитации от количества прогонов; ????
+//         3.4. оценить чувствительность откликов к вариациям переменных ИМ;
+//         3.5. построить зависимость изменения какого-либо отклика в модельном времени,
+//         выдвинуть и проверить гипотезу об уменьшении времени прогона, исключая переходный период;
+//         3.6. проверить гипотезу о возможности постановки опыта с непрерывным прогоном.
+//     4. Отобразить результаты решения задач с помощью диаграмм.
+//
+// - Во время симуляции изменять переменную и наблюдать за непрерывным откликом?
+
+mod app;
 mod chart;
 mod config;
+pub mod egui_charts;
 mod event;
 mod experiment;
 mod history;
@@ -7,9 +25,11 @@ mod results;
 mod scenario;
 mod simulation;
 mod statistic;
+pub mod tasks;
 
 use std::fs;
 
+use app::EguiApp;
 pub use config::{EstimationConfig, SimulationConfig};
 pub use event::Event;
 pub use experiment::ExperimentConfig;
@@ -20,18 +40,36 @@ use scenario::{ScenarioConfig, ScenarioParameter};
 pub use simulation::{Simulation, SimulationTick};
 pub use statistic::Stats;
 
-fn main() -> anyhow::Result<()> {
+fn main() {
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Info)
+        .init();
+
+    let native_options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default(),
+        ..Default::default()
+    };
+
+    eframe::run_native(
+        "SAIMOD",
+        native_options,
+        Box::new(|cc| Ok(Box::new(EguiApp::new(cc)))),
+    )
+    .unwrap();
+}
+
+fn oldmain() -> anyhow::Result<()> {
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
         .init();
 
     let config = {
-        let raw_config = std::fs::read_to_string("config.toml")
-            .expect("Failed to read config");
-
-        toml::from_str::<EstimationConfig>(&raw_config)
-            .expect("Failed to parse config")
+        let raw_config = std::fs::read_to_string("config.toml").expect("Failed to read config");
+        toml::from_str::<EstimationConfig>(&raw_config).expect("Failed to parse config")
     };
+
+    tasks::task32(config);
+    return Ok(());
 
     let directories = vec![
         "stats/3_1",

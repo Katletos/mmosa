@@ -62,7 +62,7 @@ impl Stats {
 
             ((mean - t_margin)..(mean + t_margin), t_margin)
         };
-
+        
         Self {
             mean,
             std_dev,
@@ -77,6 +77,7 @@ impl Stats {
     pub fn new_normal(data: &[f64], bins: usize, config: &StatsConfig) -> Self {
         let mean = data.mean();
         let std_dev = data.std_dev();
+        log::info!("{}", std_dev);
 
         let normal_distribution = Normal::new(mean, std_dev).unwrap();
 
@@ -93,7 +94,7 @@ impl Stats {
             }
             .into()
         } else {
-            log::warn!("Not enougth bins ({bins}) to estimate chi^2");
+            log::debug!("Not enougth bins ({bins}) to estimate chi^2");
             None
         };
 
@@ -108,7 +109,7 @@ impl Stats {
             }
             .into()
         } else {
-            log::warn!("Too small data size for KS test ({})", data.len());
+            log::debug!("Too small data size for KS test ({})", data.len());
             None
         };
 
@@ -133,11 +134,7 @@ impl Stats {
     }
 }
 
-pub fn chi_test<N: ContinuousCDF<f64, f64>>(
-    data: &[f64],
-    bins: usize,
-    d: N,
-) -> f64 {
+pub fn chi_test<N: ContinuousCDF<f64, f64>>(data: &[f64], bins: usize, d: N) -> f64 {
     let min_y = *data.iter().min_by(|a, b| a.total_cmp(b)).unwrap();
     let max_y = *data.iter().max_by(|a, b| a.total_cmp(b)).unwrap();
 
@@ -156,7 +153,7 @@ pub fn chi_test<N: ContinuousCDF<f64, f64>>(
             .count();
 
         if interval_size <= 4 {
-            log::warn!("Small real batch size for chi test: {interval_size}");
+            log::debug!("Small real batch size for chi test: {interval_size}");
         }
 
         let effective_prob = interval_size as f64 / total_count;
@@ -170,11 +167,7 @@ pub fn chi_test<N: ContinuousCDF<f64, f64>>(
     chi_values.into_iter().sum()
 }
 
-pub fn ks_test<N: ContinuousCDF<f64, f64>>(
-    data: &[f64],
-    bins: usize,
-    d: N,
-) -> f64 {
+pub fn ks_test<N: ContinuousCDF<f64, f64>>(data: &[f64], bins: usize, d: N) -> f64 {
     let min_y = *data.iter().min_by(|a, b| a.total_cmp(b)).unwrap();
     let max_y = *data.iter().max_by(|a, b| a.total_cmp(b)).unwrap();
 
@@ -192,9 +185,7 @@ pub fn ks_test<N: ContinuousCDF<f64, f64>>(
                 .count();
 
             if interval_size <= 4 {
-                log::warn!(
-                    "Small real batch size for chi test: {interval_size}"
-                );
+                log::debug!("Small real batch size for chi test: {interval_size}");
             }
 
             let effective_prob = interval_size as f64 / total_count;

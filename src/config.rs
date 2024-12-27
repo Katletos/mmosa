@@ -12,7 +12,8 @@ pub struct SimulationConfig {
     pub workers: u32,
     pub tables: u32,
     pub max_time: u32,
-    /// the probability that client will appereaed in simulation tick
+
+    /// the probability that client will appear on every simulation tick
     pub client_ratio: f64,
     pub production_time: Range<u32>,
     pub dancing_time: Range<u32>,
